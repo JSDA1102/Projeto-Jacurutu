@@ -92,8 +92,3 @@ Para definir o sucesso, separamos o que é essencial (obrigatório) do que são 
 3.  **Dashboard v1:** Construir o painel inicial em Streamlit para exibir esta primeira lista.
 4.  **Revisão Manual:** Analisar manualmente 50-100 casos para validar o *baseline*.
 5.  **Notebook Completo:** Implementar o "Comitê de Detetives" completo (com LOF e Autoencoder).
-
-## 8. Cuidados e Boas Práticas
-
-* **Verificação Humana:** Nenhuma ação punitiva deve ser tomada sem verificação humana prévia.
-* **Controle de Acesso:** Os dados (especialmente CPFs) devem ser tratados com segurança.
