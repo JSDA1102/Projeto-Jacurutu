@@ -72,6 +72,10 @@ O score técnico não é suficiente para auditoria pública. Uma anomalia de R$ 
 Como não temos um gabarito de "fraudes" marcadas, nosso sucesso é medido pela relevância do que encontramos:
 * **Validação Humana:** Vamos auditar manualmente as **Top 200** transações que o modelo apontar como mais suspeitas.
 * **Métrica Chave: `Precision@k`:** Vamos responder à pergunta: "Das Top 100 anomalias que o Jacurutu apontou, quantas eram *realmente* suspeitas ou interessantes para um auditor investigar?".
+* É crucial entender o que o modelo **não** é, e onde ele pode se confundir. O Jacurutu aponta transações *atípicas*, que não são necessariamente *ilegais*.
+1.  **Raridade vs. Ilegalidade:** O modelo pode marcar como "estranho" um gasto legítimo apenas porque aquele portador raramente utiliza o cartão, ou porque o fornecedor é novo na base.
+2.  **Sazonalidade Pública:** O setor público possui ciclos fortes (ex: "correria" de gastos no fim do exercício fiscal em dezembro). O modelo pode interpretar esse aumento súbito de volume como anomalia se não for treinado com janelas temporais adequadas.
+3.  **Falsos Positivos (Cold Start):** Fornecedores que aparecem pela primeira vez na base podem ter scores de anomalia mais altos até que o sistema "se acostume" com o padrão de cobrança deles.
 
 ## 6. Entregáveis do Projeto
 
