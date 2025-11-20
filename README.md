@@ -52,18 +52,19 @@ Para a IA saber o que é "estranho", primeiro precisamos ensiná-la a entender o
 * **Contexto Comportamental:** O gasto foi um valor "redondo" (ex: R$ 2.000,00)? É a primeira vez que este órgão compra deste fornecedor?
 
 ### 4.4. Modelagem
-Não confiamos em um único "detetive" (modelo de IA). Usamos um comitê de especialistas diferentes, e a decisão final é uma combinação da opinião deles.
-* **Detetive 1: O "Separador Rápido" (`Isolation Forest`):**
-    Este modelo isola rapidamente as transações que são "diferentes" das outras. As que ele consegue isolar com poucas perguntas são as mais estranhas.
-* **Detetive 2: O "Detetive de Vizinhança" (`LOF`):**
-    Este modelo olha os "vizinhos" de uma transação (gastos similares). Se uma transação está muito "sozinha" ou longe de seu grupo habitual, ela é marcada como suspeita.
-* **Detetive 3: O "Retratista" (`Autoencoder`):**
-    Treinamos esta IA para "desenhar" transações normais. Quando ela tenta "desenhar" uma transação e o desenho sai muito ruim (erro alto), significa que a transação é anômala.
+Não confiamos em um único "detetive" (modelo de IA). Usamos uma estratégia de **Ensemble** (combinação de modelos) para robustez. Cada modelo gera um score bruto, que é normalizado (escala 0 a 1) antes da combinação.
+
+* **Detetive 1 (`Isolation Forest`):** Isola anomalias baseando-se em cortes aleatórios de árvores de decisão.
+* **Detetive 2 (`Local Outlier Factor` - LOF):** Analisa a densidade local. Se um ponto tem densidade muito menor que seus vizinhos, é anômalo.
+* **Detetive 3 (`Autoencoder`):** Rede neural que aprende a "reconstruir" o padrão normal. O score é o "Erro de Reconstrução" (o quão mal ele conseguiu desenhar a transação).
+
+**Cálculo do Score de Estranheza:**
+A pontuação final de anomalia técnica é a média aritmética dos scores normalizados dos três modelos.
 
 ### 4.5. Priorização e Investigação
-O *score* da IA não é o fim. Uma transação de R$ 5,00 pode ser muito "estranha", mas não é prioritária para um auditor.
+O score técnico não é suficiente para auditoria pública. Uma anomalia de R$ 5,00 tem baixo impacto. Criamos o **Score de Prioridade** combinando "estranheza" e "risco financeiro".
 * **Score de Prioridade:** Nós criamos um score final que une a "estranheza" com o "risco financeiro":
-    `Prioridade = (Score de "Estranheza" da IA) + (Valor em Reais do Gasto)`
+    `Prioridade = (0.7 * Score_Estranheza) + (0.3 * Score_Valor)`
 * **Dashboard (Streamlit):** O auditor não vê o código, ele vê um painel interativo com a lista de gastos, já ordenada por esta `Prioridade`, pronta para análise e investigação.
 
 ## 5. Métricas de Avaliação
