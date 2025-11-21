@@ -1,99 +1,97 @@
-# 🦉 Projeto Jacurutu
+# 🦉 Project Jacurutu
 
-> **Status do Projeto:** 🚧 Em Andamento (Fase de Baseline) 🚧
+> **Project Status:** 🚧 In Progress 🚧
 
-**O Jacurutu (Corujão-orelhudo) é a maior ave de rapina noturna do Brasil. Conhecida por sua visão e audição aguçadas, ela monitora seus alvos antes da caça. A ideia do projeto é a mesma: monitorar a "floresta" de dados de gastos públicos para encontrar as transações que fogem do padrão.**
+**The Jacurutu (Great Horned Owl) is the largest nocturnal bird of prey in Brazil. Known for its acute vision and hearing, it carefully monitors its targets before hunting. The concept of this project is the same: to sharply monitor the "forest" of public spending data to spot transactions that deviate from the pattern.**
 
-## 1. Visão Geral
+## 1. Overview
 
-Este projeto usa Ciência de Dados para analisar os gastos dos Cartões de Pagamento do Governo Federal (CPGF).
+This project utilizes Data Science to analyze expenditure data from the Federal Government Payment Cards (CPGF).
 
-Nosso objetivo não é apenas *encontrar* transações estranhas, mas **priorizá-las** de forma inteligente. Para isso, vamos construir um sistema que combina o **nível de "estranheza"** (detectado pela IA) com o **valor financeiro (risco)**. O resultado final é um *dashboard* interativo onde um auditor pode investigar os casos mais relevantes.
+Our goal is not just to *find* strange transactions, but to **prioritize them** intelligently. To achieve this, we are building a system that combines the **"Anomaly Level"** (detected by AI) with the **Financial Value (Risk)**. The final result is an interactive *dashboard* where an auditor can investigate the most relevant cases.
 
-## 2. Fonte dos Dados
+## 2. Data Source
 
-A base de dados principal é o extrato detalhado dos cartões corporativos do Governo Federal, cobrindo o período de 2023 até o presente.
+The primary database is the detailed extract of corporate cards from the Federal Government, covering the period from 2023 to the present.
 
-* **Fonte:** Portal da Transparência
-* **URL de Download:** `https://portaldatransparencia.gov.br/download-de-dados/cpgf`
-* **Dicionário dos Dados:** `https://portaldatransparencia.gov.br/dicionario-de-dados/cpgf`
+* **Source:** Transparency Portal (Portal da Transparência)
+* **Download URL:** [Portal da Transparência - CPGF](https://portaldatransparencia.gov.br/download-de-dados/cpgf)
+* **Data Dictionary:** [Dicionário de Dados - CPGF](https://portaldatransparencia.gov.br/dicionario-de-dados/cpgf)
 
-## 3. Tecnologias Principais
+## 3. Main Technologies [WIP]
 
 * **[Python 3.12.9](https://www.python.org/)**
-* **[Pandas](https://pandas.pydata.org/):** Para carregar, limpar e organizar os dados.
-* **[Scikit-learn](https://scikit-learn.org/):** Para os modelos de detecção de anomalia (IF e LOF).
+* **[Pandas](https://pandas.pydata.org/):** For data loading, cleaning, and manipulation.
+* **[Scikit-learn](https://scikit-learn.org/):** For anomaly detection models.
     * **[IsolationForest](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html)**
     * **[Local Outlier Factor (LOF)](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.LocalOutlierFactor.html)**
-* **[TensorFlow/Keras](https://www.tensorflow.org/):** Para o modelo de detecção via `Autoencoder`.
-* **[Streamlit](https://streamlit.io/):** Para construir o *dashboard* interativo de investigação.
-* **[Geopandas](https://geopandas.org/):** (Planejado) Para criar mapas de onde os gastos anômalos ocorrem.
+* **[TensorFlow/Keras](https://www.tensorflow.org/):** For the `Autoencoder` detection model.
+* **[Streamlit](https://streamlit.io/):** For building the interactive investigation dashboard.
+* **[Geopandas](https://geopandas.org/):** (Planned) For geospatial heatmaps of anomalous spending.
 
-## 4. Pipeline do Projeto: O Roteiro da Caça
+## 4. Project Pipeline: The Hunting Roadmap
 
-Nossa metodologia segue um roteiro claro para transformar dados brutos em *insights* acionáveis.
+Our methodology follows a clear roadmap to transform raw data into actionable insights.
 
-### 4.1. Ingestão e Limpeza dos dados
-* **Consolidação:** Juntamos todos os arquivos CSV mensais em uma única base de dados.
-* **Rastreabilidade:** Adicionamos a coluna `ARQUIVO ORIGEM` para saber de onde veio cada transação.
-* **Tratamento de Nulos:** Removemos 23.8% das linhas que não tinham dados essenciais (como `CPF PORTADOR` ou `DATA TRANSAÇÃO`), pois elas não podem ser analisadas.
-* **Correção de Tipos:** Garantimos que datas sejam lidas como datas e valores (ex: `1.500,75`) sejam lidos como números.
+### 4.1. Exploratory Data Analysis (EDA)
+* Creation of visualizations to understand distributions and relationships between variables.
+* Identification of initial patterns and standard spending behaviors.
 
-### 4.2. Detecções Rápidas
-Antes de usar IA, procuramos por anomalias óbvias com regras simples (SQL):
-* **Valores Extremos:** Quais são as 10 maiores transações de toda a base? (Risco de alto impacto).
-* **Duplicatas Exatas:** Existem gastos idênticos (mesmo valor, data e fornecedor) lançados mais de uma vez? (Risco de erro ou fraude).
+### 4.2. Ingestion and Data Cleaning
+* **Consolidation:** Merging all monthly CSV files into a single database.
+* **Traceability:** Adding a `SOURCE_FILE` column to track the origin of each transaction.
+* **Type Correction:** Ensuring dates are parsed correctly and values (e.g., `1.500,75`) are converted to floats.
 
-### 4.3. Engenharia de Features
-Para a IA saber o que é "estranho", primeiro precisamos ensiná-la a entender o "contexto" de cada gasto. Fazemos isso criando novas colunas que respondem perguntas:
-* **Contexto do Portador:** Esse gasto é normal *para este portador*? É 10x maior que a média dele?
-* **Contexto do Fornecedor:** Esse gasto é normal *para este fornecedor*?
-* **Contexto Temporal:** O gasto ocorreu em um fim de semana ou feriado? O portador está gastando com uma frequência incomum?
-* **Contexto Comportamental:** O gasto foi um valor "redondo" (ex: R$ 2.000,00)? É a primeira vez que este órgão compra deste fornecedor?
+### 4.3. Feature Engineering
+To teach the AI what is "strange," we first need to provide the "context" for each expense. We do this by creating new features that answer specific questions:
+* **Bearer Context:** Is this spending normal *for this specific cardholder*? Is it 10x higher than their average?
+* **Supplier Context:** Is this transaction amount normal *for this supplier*?
+* **Temporal Context:** Did the expense occur on a weekend or holiday? Is the cardholder spending at an unusual frequency?
+* **Behavioral Context:** Is it a "round number" value (e.g., R$ 2,000.00)? Is this the first time this government body has purchased from this supplier?
 
-### 4.4. Modelagem
-Não confiamos em um único "detetive" (modelo de IA). Usamos uma estratégia de **Ensemble** (combinação de modelos) para robustez. Cada modelo gera um score bruto, que é normalizado (escala 0 a 1) antes da combinação.
+### 4.4. Modeling
+We do not rely on a single "detective" (AI model). We use an **Ensemble** strategy (combination of models) for robustness. Each model generates a raw score, which is normalized (scaled 0 to 1) before combination.
 
-* **Detetive 1 (`Isolation Forest`):** Isola anomalias baseando-se em cortes aleatórios de árvores de decisão.
-* **Detetive 2 (`Local Outlier Factor` - LOF):** Analisa a densidade local. Se um ponto tem densidade muito menor que seus vizinhos, é anômalo.
-* **Detetive 3 (`Autoencoder`):** Rede neural que aprende a "reconstruir" o padrão normal. O score é o "Erro de Reconstrução" (o quão mal ele conseguiu desenhar a transação).
+* **Detective 1 (`Isolation Forest`):** Isolates anomalies based on random cuts in decision trees.
+* **Detective 2 (`Local Outlier Factor` - LOF):** Analyzes local density. If a point has a much lower density than its neighbors, it is an anomaly.
+* **Detective 3 (`Autoencoder`):** A neural network that learns to "reconstruct" the normal pattern. The score is the "Reconstruction Error" (how badly it failed to reproduce the transaction).
 
-**Cálculo do Score de Estranheza:**
-A pontuação final de anomalia técnica é a média aritmética dos scores normalizados dos três modelos.
+**Calculating the Anomaly Score:**
+The final technical anomaly score is the arithmetic mean of the normalized scores from the three models.
 
-### 4.5. Priorização e Investigação
-O score técnico não é suficiente para auditoria pública. Uma anomalia de R$ 5,00 tem baixo impacto. Criamos o **Score de Prioridade** combinando "estranheza" e "risco financeiro".
-* **Score de Prioridade:** Nós criamos um score final que une a "estranheza" com o "risco financeiro":
-    `Prioridade = (0.7 * Score_Estranheza) + (0.3 * Score_Valor)`
-* **Dashboard (Streamlit):** O auditor não vê o código, ele vê um painel interativo com a lista de gastos, já ordenada por esta `Prioridade`, pronta para análise e investigação.
+### 4.5. Prioritization & Investigation
+A technical score alone is insufficient for public auditing. A R$ 5.00 anomaly has low impact. We created the **Priority Score** by combining "Technical Strangeness" with "Financial Risk".
 
-## 5. Métricas de Avaliação
+* **Priority Score Formula:**
 
-Como não temos um gabarito de "fraudes" marcadas, nosso sucesso é medido pela relevância do que encontramos:
-* **Validação Humana:** Vamos auditar manualmente as **Top 200** transações que o modelo apontar como mais suspeitas.
-* **Métrica Chave: `Precision@k`:** Vamos responder à pergunta: "Das Top 100 anomalias que o Jacurutu apontou, quantas eram *realmente* suspeitas ou interessantes para um auditor investigar?".
-* É crucial entender o que o modelo **não** é, e onde ele pode se confundir. O Jacurutu aponta transações *atípicas*, que não são necessariamente *ilegais*.
-1.  **Raridade vs. Ilegalidade:** O modelo pode marcar como "estranho" um gasto legítimo apenas porque aquele portador raramente utiliza o cartão, ou porque o fornecedor é novo na base.
-2.  **Sazonalidade Pública:** O setor público possui ciclos fortes (ex: "correria" de gastos no fim do exercício fiscal em dezembro). O modelo pode interpretar esse aumento súbito de volume como anomalia se não for treinado com janelas temporais adequadas.
-3.  **Falsos Positivos (Cold Start):** Fornecedores que aparecem pela primeira vez na base podem ter scores de anomalia mais altos até que o sistema "se acostume" com o padrão de cobrança deles.
+$$Priority = (0.7 \times AnomalyScore) + (0.3 \times ValueScore)$$
 
-## 6. Entregáveis do Projeto
+* **Dashboard (Streamlit):** The auditor does not see the code; they interact with a dashboard containing the list of expenses, already sorted by this `Priority`, ready for analysis and drill-down.
 
-Para definir o sucesso, separamos o que é essencial (obrigatório) do que são melhorias futuras (opcionais).
+## 5. Evaluation Metrics
 
-### Entregáveis Obrigatórios (Core do Projeto)
-1.  **Modelo de Detecção de Anomalias:** O "Comitê de Detetives" (IF, LOF, Autoencoder) treinado e capaz de gerar um score de "estranheza" para cada transação.
-2.  **Script de Priorização:** A lógica de negócio que combina o score de "estranheza" com o valor financeiro para criar o `Score de Prioridade`.
-3.  **Dashboard Interativo (Streamlit):** A ferramenta visual para o usuário final (auditor) consumir a lista priorizada, analisar os *outliers* (com *drill-down*) e gerenciar o fluxo de investigação.
-4.  **Análise Geoespacial (Geopandas):** Implementar o mapa de calor (planejado na seção de tecnologias) para mostrar *onde* geograficamente os gastos anômalos estão concentrados.
+Since we do not have a labeled "fraud" dataset, our success is measured by the relevance of our findings:
 
-### Entregáveis Opcionais
-1.  **Modelo de Previsão de Gastos:** Utilizar modelos de Regressão Linear ou Séries Temporais para tentar *prever* o volume de gastos futuros por órgão ou categoria, ajudando no planejamento orçamentário.
+* **Human Validation:** Manual auditing of the **Top 200** transactions flagged by the model as most suspicious.
+* **Key Metric: `Precision@k`:** Answering the question: "Out of the Top 100 anomalies flagged by Jacurutu, how many were *actually* suspicious or worth investigating by an auditor?"
 
-## 7. Roadmap (Próximos Passos)
+## 6. Limitations & Risks
 
-1.  **Queries Rápidas:** Implementar as detecções SQL (duplicatas, top 1%).
-2.  **Modelo Baseline:** Rodar o primeiro "detetive" (`Isolation Forest`) e exportar o Top 500 de suspeitos.
-3.  **Dashboard v1:** Construir o painel inicial em Streamlit para exibir esta primeira lista.
-4.  **Revisão Manual:** Analisar manualmente 50-100 casos para validar o *baseline*.
-5.  **Notebook Completo:** Implementar o "Comitê de Detetives" completo (com LOF e Autoencoder).
+It is crucial to understand what the model is **not**, and where it might get confused. Jacurutu points out *atypical* transactions, which are not necessarily *illegal*.
+
+1.  **Rarity vs. Illegality:** The model might flag a legitimate expense as "strange" simply because that cardholder rarely uses the card, or because the supplier is new to the database.
+2.  **Public Seasonality:** The public sector has strong cycles (e.g., the "rush" of spending at the end of the fiscal year in December). The model might interpret this sudden volume increase as an anomaly if not trained with adequate time windows.
+3.  **False Positives (Cold Start):** Suppliers appearing for the first time in the database may have higher anomaly scores until the system "gets used" to their billing pattern.
+
+## 7. Project Deliverables
+
+To define success, we separate what is essential (mandatory) from future improvements (optional).
+
+### Mandatory Deliverables (Core)
+1.  **Anomaly Detection Model:** The "Committee of Detectives" (IF, LOF, Autoencoder) trained and capable of generating an anomaly score for each transaction.
+2.  **Prioritization Script:** The business logic combining the anomaly score with financial value to create the `Priority Score`.
+3.  **Interactive Dashboard (Streamlit):** The visual tool for the end-user (auditor) to consume the prioritized list, analyze outliers (with drill-down), and manage the investigation flow.
+4.  **Geospatial Analysis (Geopandas):** Implementation of heatmaps to show *where* geographically the anomalous expenses are concentrated.
+
+### Optional Deliverables
+1.  **Spending Forecasting Model:** Utilization of Linear Regression or Time Series models to attempt to *predict* future spending volume by agency or category, aiding in budget planning.
