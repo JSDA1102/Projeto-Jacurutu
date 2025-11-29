@@ -16,6 +16,7 @@ def load_and_combine_csvs(csv_path):
         df_temp['ARQUIVO_ORIGEM'] = file
         dfs.append(df_temp)
     df = pd.concat(dfs, ignore_index=True)
+    ## Opt.: Adicionar fluxo para considerar somente os ultimos X meses para melhorar performance.
     return df
 
 def clean_dataframe(df):
