@@ -3,5 +3,5 @@ raw_data/
 *.csv
 *.xlsx
 .python-version
-__pycache__/
+__pycache__
 *.pyc
