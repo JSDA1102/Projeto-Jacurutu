@@ -5,3 +5,4 @@ raw_data/
 .python-version
 __pycache__/
 *.pyc
+*.pyo
