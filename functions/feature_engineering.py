@@ -1,6 +1,10 @@
 import numpy as np
 
 def feature_engineering(df):
+
+    # Add confidential flag
+    df['SIGILOSO'] = (df['TRANSAÇÃO'] == 'Informações protegidas por sigilo').astype(int)
+
     # ID_portador column
     df["ID_PORTADOR"] = df["CPF PORTADOR"] + df["NOME PORTADOR"]
 

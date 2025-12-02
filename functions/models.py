@@ -1,23 +1,11 @@
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import LocalOutlierFactor
-import joblib
 import os
 import sys
 sys.path.append(os.path.abspath('..'))
 from functions.preprocessing import get_preprocessor
 
-
-FEATURES_MODELO = [
-    'LOG_VALOR',
-    'RATIO_MES',
-    'ANO EXTRATO',
-    'MÊS EXTRATO',
-    'FREQ_NOME ÓRGÃO',
-    'FREQ_ESTADO_ESTIMADO',
-    'SIGILOSO',
-    'FIM_SEMANA'
-]
 
 def run_lof(df, contamination=0.01, n_neighbors=20):
     """

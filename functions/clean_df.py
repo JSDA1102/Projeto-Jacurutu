@@ -38,12 +38,3 @@ def clean_dataframe(df):
     df['VALOR TRANSAÇÃO'] = pd.to_numeric(df['VALOR TRANSAÇÃO'], errors='coerce').fillna(0)
     df_limpo = df.drop_duplicates()
     return df_limpo
-
-def add_confidential_flags(df_limpo):
-    """
-    Add one columns:
-    - 'SIGILOSO': 1 if transaction is confidential, 0 otherwise.
-    """
-    df_limpo = df_limpo.copy()
-    df_limpo['SIGILOSO'] = (df_limpo['TRANSAÇÃO'] == 'Informações protegidas por sigilo').astype(int)
-    return df_limpo
