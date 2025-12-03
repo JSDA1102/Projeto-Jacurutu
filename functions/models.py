@@ -47,8 +47,6 @@ def run_lof_normal(df, contamination=0.01, n_neighbors=20):
 
     return df_lof_normal
 
-
-
 def run_lof_classified (df, contamination=0.01, n_neighbors=20):
     """
     Executa o LOF APENAS para transações SIGILOSAS (SIGILOSO=1).
@@ -117,8 +115,6 @@ def run_if_normal(df, contamination=0.01, random_state=42):
     df_if_normal['IF_SCORE'] = if_model.decision_function(X_final)
 
     return df_if_normal
-
-
 
 def run_if_classified(df, contamination=0.01, random_state=42):
     """
