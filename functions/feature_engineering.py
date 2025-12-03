@@ -18,4 +18,17 @@ def feature_engineering(df):
     # Transform value into log
     df['LOG_VALOR'] = np.log1p(df['VALOR TRANSAÇÃO'])
 
+    # Frequência para cada coluna categórica informada
+    coluna_frequencia = ['NOME ÓRGÃO', 'ESTADO_ESTIMADO', 'NOME FAVORECIDO']
+    for col in coluna_frequencia:
+        freq_map = df[col].value_counts(normalize=True)
+        df[f'FREQ_{col}'] = df[col].map(freq_map)
+
+    # Adiciona uma coluna contendo a média do valor da transação por órgão, ano e mês
+    df['MEDIA_VALOR_ORGAO_MES'] = df.groupby(['NOME ÓRGÃO', 'ANO EXTRATO',
+                                              'MÊS EXTRATO'])['VALOR TRANSAÇÃO'].transform('mean')
+
+    # Adiciona uma coluna para razão entre o valor da transação e o órgão
+    df['RATIO_MES'] = df['VALOR TRANSAÇÃO'] / df['MEDIA_VALOR_ORGAO_MES']
+
     return df
