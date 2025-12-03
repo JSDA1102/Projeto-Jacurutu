@@ -1,11 +1,15 @@
 import numpy as np
 
 def feature_engineering(df):
+
+    # Add confidential flag
+    df['SIGILOSO'] = (df['TRANSAÇÃO'] == 'Informações protegidas por sigilo').astype(int)
+
     # ID_portador column
-    df["ID_portador"] = df["CPF PORTADOR"] + df["NOME PORTADOR"]
+    df["ID_PORTADOR"] = df["CPF PORTADOR"] + df["NOME PORTADOR"]
 
     # Weekend column (including "SIGILOSO" rule)
-    df["fim_semana"] = np.where(
+    df["FIM_SEMANA"] = np.where(
         df['SIGILOSO'] == 1,
         0,
         df['DATA TRANSAÇÃO'].dt.day_of_year.isin([5, 6]).astype(int)

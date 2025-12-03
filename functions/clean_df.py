@@ -16,6 +16,7 @@ def load_and_combine_csvs(csv_path):
         df_temp['ARQUIVO_ORIGEM'] = file
         dfs.append(df_temp)
     df = pd.concat(dfs, ignore_index=True)
+    ## Opt.: Adicionar fluxo para considerar somente os ultimos X meses para melhorar performance.
     return df
 
 def clean_dataframe(df):
@@ -36,13 +37,4 @@ def clean_dataframe(df):
     )
     df['VALOR TRANSAÇÃO'] = pd.to_numeric(df['VALOR TRANSAÇÃO'], errors='coerce').fillna(0)
     df_limpo = df.drop_duplicates()
-    return df_limpo
-
-def add_confidential_flags(df_limpo):
-    """
-    Add one columns:
-    - 'SIGILOSO': 1 if transaction is confidential, 0 otherwise.
-    """
-    df_limpo = df_limpo.copy()
-    df_limpo['SIGILOSO'] = (df_limpo['TRANSAÇÃO'] == 'Informações protegidas por sigilo').astype(int)
     return df_limpo
