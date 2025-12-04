@@ -1,15 +1,17 @@
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import LocalOutlierFactor
+from sklearn.ensemble import IsolationForest
 import os
 import sys
 sys.path.append(os.path.abspath('..'))
 from functions.preprocessing import get_preprocessor
 
+## Modelo Local Outlier Factor (LOF)
 
 def run_lof_normal(df, contamination=0.01, n_neighbors=20):
     """
-    Executa o LOF APENAS para transações NÃO SIGILOSAS.
+    Executa o LOF APENAS para transações NÃO SIGILOSAS (SIGILOSO=0).
     Ignora os dados sigilosos na detecção de anomalia.
 
     Args:
@@ -21,12 +23,12 @@ def run_lof_normal(df, contamination=0.01, n_neighbors=20):
         pd.DataFrame: DataFrame filtrado (só não sigilosos) com scores.
     """
     # Filtro apenas o que NÃO é sigiloso
-    df_normal = df[df['SIGILOSO'] == 0].copy()
+    df_lof_normal = df[df['SIGILOSO'] == 0].copy()
 
 
     # Preprocessamento
     preprocessor = get_preprocessor()
-    X_scaled = preprocessor.fit_transform(df_normal)
+    X_scaled = preprocessor.fit_transform(df_lof_normal)
 
     # Adicionando ruído
     ruido = np.random.normal(0, 1e-5, X_scaled.shape)
@@ -40,18 +42,14 @@ def run_lof_normal(df, contamination=0.01, n_neighbors=20):
     )
 
     # Predição
-    df_normal['LOF_LABEL'] = lof.fit_predict(X_final)
-    df_normal['LOF_SCORE'] = lof.negative_outlier_factor_
+    df_lof_normal['LOF_LABEL'] = lof.fit_predict(X_final)
+    df_lof_normal['LOF_SCORE'] = lof.negative_outlier_factor_
 
-    n_anomalias = (df_normal['LOF_LABEL'] == -1).sum()
-
-    return df_normal
-
-
+    return df_lof_normal
 
 def run_lof_classified (df, contamination=0.01, n_neighbors=20):
     """
-    Executa o LOF APENAS para transações SIGILOSAS (data imputada, sem favorecido).
+    Executa o LOF APENAS para transações SIGILOSAS (SIGILOSO=1).
     Foca em anomalias de valor e órgão dentro do universo de sigilo.
 
     Args:
@@ -64,11 +62,11 @@ def run_lof_classified (df, contamination=0.01, n_neighbors=20):
     """
 
     # Pega apenas o SIGILOSO
-    df_classified = df[df['SIGILOSO'] == 1].copy()
+    df_lof_classified = df[df['SIGILOSO'] == 1].copy()
 
     # Preprocessamento
     preprocessor = get_preprocessor()
-    X_scaled = preprocessor.fit_transform(df_classified)
+    X_scaled = preprocessor.fit_transform(df_lof_classified)
 
     # Adicionando ruído
     ruido = np.random.normal(0, 1e-5, X_scaled.shape)
@@ -82,9 +80,67 @@ def run_lof_classified (df, contamination=0.01, n_neighbors=20):
     )
 
     # Predição
-    df_classified['LOF_LABEL'] = lof.fit_predict(X_final)
-    df_classified['LOF_SCORE'] = lof.negative_outlier_factor_
+    df_lof_classified['LOF_LABEL'] = lof.fit_predict(X_final)
+    df_lof_classified['LOF_SCORE'] = lof.negative_outlier_factor_
 
-    n_anomalias = (df_classified['LOF_LABEL'] == -1).sum()
+    return df_lof_classified
 
-    return df_classified
+## Isolation Forest (IF)
+
+def run_if_normal(df, contamination=0.01, random_state=42):
+    """
+    Executa Isolation Forest APENAS para transações NÃO SIGILOSAS (SIGILOSO=0).
+    Ignora os dados sigilosos na detecção de anomalia.
+    """
+    # Filtrar só registros não sigilosos
+    df_if_normal = df[df['SIGILOSO'] == 0].copy()
+
+    # Preprocessamento
+    preprocessor = get_preprocessor()
+    X_scaled = preprocessor.fit_transform(df_if_normal)
+
+    # Adicionar pequeno ruído para evitar colinearidade
+    ruido = np.random.normal(0, 1e-5, X_scaled.shape)
+    X_final = X_scaled + ruido
+
+    # Treinar Isolation Forest
+    if_model = IsolationForest(
+        contamination=contamination,
+        random_state=random_state,
+        n_estimators=300,
+        n_jobs=-1
+    )
+
+    df_if_normal['IF_LABEL'] = if_model.fit_predict(X_final)
+    df_if_normal['IF_SCORE'] = if_model.decision_function(X_final)
+
+    return df_if_normal
+
+def run_if_classified(df, contamination=0.01, random_state=42):
+    """
+    Executa Isolation Forest APENAS para transações SIGILOSAS (SIGILOSO=1).
+    Usado para achar anomalias dentro do universo sigiloso.
+    """
+    # Filtrar só registros sigilosos
+    df_if_classified = df[df['SIGILOSO'] == 1].copy()
+
+    # Preprocessamento
+    preprocessor = get_preprocessor()
+    X_scaled = preprocessor.fit_transform(df_if_classified)
+
+    # Ruído
+    ruido = np.random.normal(0, 1e-5, X_scaled.shape)
+    X_final = X_scaled + ruido
+
+    # Treinar Isolation Forest
+    if_model = IsolationForest(
+        contamination=contamination,
+        random_state=random_state,
+        n_estimators=300,
+        n_jobs=-1
+    )
+
+    df_if_classified['IF_LABEL'] = if_model.fit_predict(X_final)
+    df_if_classified['IF_SCORE'] = if_model.decision_function(X_final)
+
+    return df_if_classified
