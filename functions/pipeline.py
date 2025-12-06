@@ -20,11 +20,13 @@ def run_pipeline(raw_data):
         - Output of run_if_classified(df_feature_engineering)
         - Output of run_if_normal(df_feature_engineering)
     """
+    # Using functions created previously
     df_raw = load_and_combine_csvs(raw_data)
     df_clean = clean_dataframe(df_raw)
     df_state = apply_state_estimation(df_clean)
     df_feature_engineering = feature_engineering(df_state)
 
+    # Returning a dictionary with 4 different dataframes
     return {
     'lof_classified': run_lof_classified(df_feature_engineering),
     'lof_normal': run_lof_normal(df_feature_engineering),
