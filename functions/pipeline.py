@@ -81,17 +81,31 @@ def combine_dataframes(df_lof_classified, df_lof_normal, df_if_classified, df_if
 
     return df_final
 
+def calculate_priority_score(df: pd.DataFrame):
+    """
+    Calculates the Technical Score, Financial Risk, and the final weighted
+    Priority Score for manual review.
 
-# 3. Criação do score de prioridade
-# 3.1 Juntar os scores do log e if após normalização (mean)
-# 3.2 Score de prioridade (0.7 x score técnico (3.1)) + (0.3 x risco financeiro (valor transação))
-# Order by score de prioridade e depois, análise manual
+    Returns:
+        pd.DataFrame: The DataFrame with the final PRIORITY_SCORE, sorted descending.
+    """
 
-# 1. Post-processing step
-# 1.1 Concatenate the 4 dataframes generated in the previous stage
-# 2. Normalization of if_score and lof_score (minmaxscaler / -1 to 1)
-# 3. Creation of the priority score
-# 3.1 Combine the log and if scores after normalization (mean)
-# 3.2 Priority score (0.7 x technical score (3.1)) + (0.3 x financial risk (transaction value))
-# Order by priority score and then manual analysis
-#
+    # 3.1 Combine Technical Scores (Mean)
+    df['TECHNICAL_SCORE'] = df[['LOF_SCORE_NORM', 'IF_SCORE_NORM']].mean(axis=1)
+
+    # 3.2 Calculate Financial Risk and Final Weighted Priority Score
+
+    # Normalize LOG_VALOR to range [0, 1] to use it as a weighting factor
+    log_scaler = MinMaxScaler(feature_range=(0, 1))
+    df['FINANCIAL_RISK'] = log_scaler.fit_transform(df[['LOG_VALOR']])
+
+    # Final Priority Calculation: (0.7 * Technical) + (0.3 * Financial Risk)
+    df['PRIORITY_SCORE'] = (
+        (0.7 * df['TECHNICAL_SCORE']) +
+        (0.3 * df['FINANCIAL_RISK'])
+    )
+
+    # Order by priority score
+    df = df.sort_values(by='PRIORITY_SCORE', ascending=False).reset_index(drop=True)
+
+    return df
