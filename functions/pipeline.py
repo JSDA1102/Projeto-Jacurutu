@@ -58,8 +58,27 @@ def combine_dataframes(df_lof_classified, df_lof_normal, df_if_classified, df_if
         df_if_classified, df_if_normal,
         label_cols=["IF_LABEL", "IF_SCORE"]
     )
+
     # Final merge: LOF (all columns) + IF (specific columns)
     df_final = df_lof_full.merge(df_if_specific, on="ID", how="inner")
+
+    # Normalization step
+    # IF_SCORE: Assuming lower score = higher risk. Invert to: Higher score = Higher risk.
+    df_final['RISK_IF_SCORE'] = 1 - df_final['IF_SCORE']
+
+    # LOF_SCORE: Already negative, where more negative is higher risk.
+    df_final['RISK_LOF_SCORE'] = df_final['LOF_SCORE'].abs()
+
+    # Normalize both risk scores to the range [-1, 1]
+    scaler = MinMaxScaler(feature_range=(-1, 1))
+
+    # Reshape scores for MinMaxScaler and fit/transform
+    df_final['LOF_SCORE_NORM'] = scaler.fit_transform(df_final[['RISK_LOF_SCORE']])
+    df_final['IF_SCORE_NORM'] = scaler.fit_transform(df_final[['RISK_IF_SCORE']])
+
+    # Clean up intermediate columns
+    df_final = df_final.drop(columns=['RISK_LOF_SCORE', 'RISK_IF_SCORE'])
+
     return df_final
 
 
