@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 from functions.clean_df import load_and_combine_csvs, clean_dataframe
 from functions.state_imput import apply_state_estimation
 from functions.feature_engineering import feature_engineering
@@ -12,11 +14,11 @@ def run_pipeline(raw_data):
     raw_data : Path to directory with CSVs.
 
     Returns
-    tuple of length 4:
-        - Output of run_lof_classified(X_processed)
-        - Output of run_lof_normal(X_processed)
-        - Output of run_if_classified(X_processed)
-        - Output of run_if_normal(X_processed)
+    Dictionary of length 4:
+        - Output of run_lof_classified(df_feature_engineering)
+        - Output of run_lof_normal(df_feature_engineering)
+        - Output of run_if_classified(df_feature_engineering)
+        - Output of run_if_normal(df_feature_engineering)
     """
     df_raw = load_and_combine_csvs(raw_data)
     df_clean = clean_dataframe(df_raw)
@@ -30,20 +32,37 @@ def run_pipeline(raw_data):
     'if_normal': run_if_normal(df_feature_engineering)
     }
 
-def post_processing(raw_data):
-    result_dict = run_pipeline(raw_data)
-    dfs = [
-        result_dict['lof_classified'].reset_index(drop=True),
-        result_dict['lof_normal'].reset_index(drop=True),
-        result_dict['if_classified'].reset_index(drop=True),
-        result_dict['if_normal'].reset_index(drop=True)
-    ]
-    df_final = pd.concat(dfs, axis=1)
+def combine_dataframes(df_lof_classified, df_lof_normal, df_if_classified, df_if_normal):
+    """
+    Combine the dataframes LOF and IF, creates ID, rearrange columns,
+    and merge final adding only specific columns.
+    """
+    def combine(df1, df2, label_cols):
+        df = pd.concat([df1, df2], ignore_index=True).drop_duplicates().reset_index(drop=True)
+
+        df["ID"] = df.index + 1
+
+        cols = ["ID"] + [c for c in df.columns if c != "ID"]
+        df = df[cols]
+
+        df_specific = df[["ID"] + label_cols]
+        return df, df_specific
+
+    # Processing LOF
+    df_lof_full, df_lof_specific = combine(
+        df_lof_classified, df_lof_normal,
+        label_cols=["LOF_LABEL", "LOF_SCORE"]
+    )
+    # Processing IF
+    df_if_full, df_if_specific = combine(
+        df_if_classified, df_if_normal,
+        label_cols=["IF_LABEL", "IF_SCORE"]
+    )
+    # Final merge: LOF (all columns) + IF (specific columns)
+    df_final = df_lof_full.merge(df_if_specific, on="ID", how="inner")
     return df_final
 
-# 1. Etapa de pos processamento
-# 1.1 Concat dos 4 df gerados na etapa anterior
-# 2. Normalizacao do if_score e lof_score (minmaxscaler/ -1 a 1)
+
 # 3. Criação do score de prioridade
 # 3.1 Juntar os scores do log e if após normalização (mean)
 # 3.2 Score de prioridade (0.7 x score técnico (3.1)) + (0.3 x risco financeiro (valor transação))
