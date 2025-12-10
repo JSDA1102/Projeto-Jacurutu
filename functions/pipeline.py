@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import RobustScaler, MinMaxScaler
 from functions.clean_df import load_and_combine_csvs, clean_dataframe
 from functions.state_imput import apply_state_estimation
 from functions.feature_engineering import feature_engineering
@@ -71,10 +71,10 @@ def combine_dataframes(df_lof_classified, df_lof_normal, df_if_classified, df_if
     # LOF_SCORE: Already negative, where more negative is higher risk.
     df_final['RISK_LOF_SCORE'] = df_final['LOF_SCORE'].abs()
 
-    # Normalize both risk scores to the range [-1, 1]
-    scaler = MinMaxScaler(feature_range=(-1, 1))
+    # Normalize both risk scores 
+    scaler = RobustScaler()
 
-    # Reshape scores for MinMaxScaler and fit/transform
+    # Reshape scores for RobustScaler and fit/transform
     df_final['LOF_SCORE_NORM'] = scaler.fit_transform(df_final[['RISK_LOF_SCORE']])
     df_final['IF_SCORE_NORM'] = scaler.fit_transform(df_final[['RISK_IF_SCORE']])
 
@@ -97,8 +97,8 @@ def calculate_priority_score(df: pd.DataFrame):
 
     # 3.2 Calculate Financial Risk and Final Weighted Priority Score
 
-    # Normalize LOG_VALOR to range [0, 1] to use it as a weighting factor
-    log_scaler = MinMaxScaler(feature_range=(0, 1))
+    # Normalize LOG_VALOR to use it as a weighting factor
+    log_scaler = RobustScaler()
     df['FINANCIAL_RISK'] = log_scaler.fit_transform(df[['LOG_VALOR']])
 
     # Final Priority Calculation: (0.7 * Technical) + (0.3 * Financial Risk)
@@ -106,7 +106,6 @@ def calculate_priority_score(df: pd.DataFrame):
         (0.7 * df['TECHNICAL_SCORE']) +
         (0.3 * df['FINANCIAL_RISK'])
     )
-
     # Order by priority score
     df = df.sort_values(by='PRIORITY_SCORE', ascending=False).reset_index(drop=True)
 
