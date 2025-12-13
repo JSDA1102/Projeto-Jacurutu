@@ -18,7 +18,6 @@ st.set_page_config(page_title="Projeto Jacurutu", page_icon="🦉", layout="wide
 ## LOCAL PARA DESIGN
 
 # 1. TRADUÇÕES E CONSTANTES
-# 1. TRADUÇÕES E CONSTANTES
 TRANS = {
     "pt": {
         "title": "🦉 Projeto Jacurutu",
