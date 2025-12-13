@@ -9,11 +9,15 @@ import folium
 from folium.plugins import HeatMap
 from streamlit_folium import st_folium
 
+# ============================================================
+# CONFIGURAÇÃO GERAL DO STREAMLIT
+# ============================================================
 
-# 1. CONFIGURAÇÃO INICIAL
 st.set_page_config(page_title="Projeto Jacurutu", page_icon="🦉", layout="wide")
 
-# 2. TRADUÇÕES E CONSTANTES
+## LOCAL PARA DESIGN
+
+# 1. TRADUÇÕES E CONSTANTES
 TRANS = {
     "pt": {
         "title": "🦉 Projeto Jacurutu",
@@ -90,7 +94,7 @@ COORDS_ESTADOS = {
 }
 
 
-# 3. CARREGAMENTO DE DADOS
+# 2. CARREGAMENTO DE DADOS
 @st.cache_data
 def load_data():
     path_parquet = "data/processed/cpgf_limpo_v8_completo.parquet"
@@ -127,7 +131,7 @@ def load_data():
 
 df = load_data()
 
-# 4. SIDEBAR + FILTROS EM CASCATA
+# 3. SIDEBAR + FILTROS EM CASCATA
 with st.sidebar:
     lang_opt = st.radio("Idioma / Language", ["Português", "English"], horizontal=True)
     lang = "pt" if lang_opt == "Português" else "en"
@@ -139,33 +143,32 @@ with st.sidebar:
         st.warning(T["warning_nodata"])
         st.stop()
 
-    # 1. Estado
+    # 3.1. Estado
     estados = sorted(df["ESTADO_ESTIMADO"].unique().tolist())
     estado_sel = st.multiselect(T["filter_estado"], estados)
 
-    # DF Temporário (Cascata)
     df_tmp = df[df["ESTADO_ESTIMADO"].isin(estado_sel)] if estado_sel else df
 
-    # 2. Órgão Superior
+    # 3.2. Órgão Superior
     orgsup_opts = sorted(df_tmp["NOME ÓRGÃO SUPERIOR"].unique().tolist())
     orgsup_sel = st.multiselect(T["filter_orgsup"], orgsup_opts)
 
     if orgsup_sel: df_tmp = df_tmp[df_tmp["NOME ÓRGÃO SUPERIOR"].isin(orgsup_sel)]
 
-    # 3. Órgão
+    # 3.3. Órgão
     org_opts = sorted(df_tmp["NOME ÓRGÃO"].unique().tolist())
     org_sel = st.multiselect(T["filter_org"], org_opts)
 
     if org_sel: df_tmp = df_tmp[df_tmp["NOME ÓRGÃO"].isin(org_sel)]
 
-    # 4. Unidade Gestora
+    # 3.4. Unidade Gestora
     ug_opts = sorted(df_tmp["NOME UNIDADE GESTORA"].unique().tolist())
     ug_sel = st.multiselect(T["filter_ug"], ug_opts)
 
-    # 5. Sigilo
+    # 3.5. Sigilo
     sigilo_choice = st.radio(T["filter_sigilo"], [T["sigilo_sim"], T["sigilo_nao"]], index=1)
 
-    # 6. Data
+    # 3.6. Data
     min_d, max_d = df["DATA TRANSAÇÃO"].min(), df["DATA TRANSAÇÃO"].max()
     if pd.isna(max_d): max_d = datetime.now()
     if pd.isna(min_d): min_d = max_d - timedelta(days=90)
@@ -176,9 +179,7 @@ with st.sidebar:
     except:
         date_sel = [min_d, max_d]
 
-# ------------------------------------------------------------
 # APLICAÇÃO DOS FILTROS
-# ------------------------------------------------------------
 df_f = df.copy()
 
 mask_sem_data = df_f["DATA TRANSAÇÃO"].isna()
@@ -205,14 +206,12 @@ if 'ug_sel' in locals() and ug_sel:
     df_f = df_f[df_f["NOME UNIDADE GESTORA"].isin(ug_sel)]
 
 # 2. Filtro de Sigilo
-# Garante conversão numérica para comparar 0 e 1
 df_f["SIGILOSO"] = pd.to_numeric(df_f["SIGILOSO"], errors='coerce').fillna(0).astype(int)
 
 if 'sigilo_choice' in locals():
     if sigilo_choice == T["sigilo_sim"]:
         df_f = df_f[df_f["SIGILOSO"] == 1]
     else:
-        # Padrão: Não Sigilosos
         df_f = df_f[df_f["SIGILOSO"] == 0]
 
 # 3. Filtro de Período
@@ -224,7 +223,7 @@ if 'date_sel' in locals() and isinstance(date_sel, (list, tuple)) and len(date_s
     except Exception:
         pass
 
-# 5. LAYOUT PRINCIPAL
+# 5. Layout Principal
 st.title(T["title"])
 st.markdown(f"**{T['subtitle']}**")
 tab1, tab2 = st.tabs([T["tab_concept"], T["tab_dashboard"]])
@@ -391,9 +390,7 @@ with tab2:
         st.warning(T["warning_filter_empty"])
         st.stop()
 
-    # --- DEFINIÇÃO DE ANOMALIA (Para KPIs e Gráficos) ---
-    # Se tiver label técnico (-1 = anomalia), usa ele.
-    # Se não, considera anomalia quem está no Top 10% de Score de Risco.
+    # --- ANOMALIAS FILTRADAS ---
     if "TECHNICAL_LABEL" in df_f.columns:
         df_anomalias = df_f[df_f["TECHNICAL_LABEL"] == -1]
     else:
@@ -420,9 +417,8 @@ with tab2:
     st.divider()
     st.info(T["obs_uniao"])
 
-# ------------------------------------------------------------
-    # MAPAS (HEATMAP) - CORREÇÃO DE RENDERIZAÇÃO
-    # ------------------------------------------------------------
+
+# MAPAS (HEATMAP) - CORREÇÃO DE RENDERIZAÇÃO
 
     # 1. Preparação dos Dados (Com Spinner real cobrindo o cálculo)
     with st.spinner("Calculando geolocalização dos gastos..."):
@@ -445,21 +441,17 @@ with tab2:
         heat_spend_data = get_heat_data(df_geo, "VALOR_TOTAL")
 
     # 2. Renderização
-    # Criamos uma "assinatura" única baseada no tamanho dos dados.
-    # Isso força o Streamlit a redesenhar o mapa se os dados mudarem (ou no carregamento inicial).
     map_id = f"{len(df_f)}_{df_f['VALOR TRANSAÇÃO'].sum()}"
 
     c1, c2 = st.columns(2)
 
     with c1:
         st.subheader(T["map_anom"])
-        # Criação do objeto Map (Rápido)
         m1 = folium.Map(location=[-15.78, -47.93], zoom_start=3, tiles="CartoDB positron")
 
         if heat_anom_data:
             HeatMap(heat_anom_data, radius=25, blur=15, gradient={0.4: 'orange', 1: 'red'}).add_to(m1)
 
-        # Exibição (O Pulo do Gato: key dinâmica)
         st_folium(
             m1,
             height=400,
@@ -474,7 +466,6 @@ with tab2:
 
         if heat_spend_data:
             HeatMap(heat_spend_data, radius=25, blur=15, gradient={0.4: 'blue', 1: 'green'}).add_to(m2)
-
         st_folium(
             m2,
             height=400,
@@ -484,7 +475,7 @@ with tab2:
         )
 
 
-    # GRÁFICO TEMPORAL (Corrigido)
+    # GRÁFICO TEMPORAL
     st.subheader(T["chart_time"])
 
     # 1. Criar coluna MES no dataframe principal
