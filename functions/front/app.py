@@ -18,6 +18,7 @@ st.set_page_config(page_title="Projeto Jacurutu", page_icon="🦉", layout="wide
 ## LOCAL PARA DESIGN
 
 # 1. TRADUÇÕES E CONSTANTES
+# 1. TRADUÇÕES E CONSTANTES
 TRANS = {
     "pt": {
         "title": "🦉 Projeto Jacurutu",
@@ -40,6 +41,7 @@ TRANS = {
         "kpi_estado": "Estado Principal",
         "map_anom": "🗺️ Mapa de Calor: Risco & Anomalias",
         "map_spend": "💰 Mapa de Calor: Volume de Gastos",
+        "map_help": "⚠️ Se o mapa não aparecer: Altere qualquer filtro (ex: Transações Sigilosas) e retorne. Isso força o navegador a redesenhar o mapa.",
         "obs_uniao": "🔎 Obs.: 'UNIÃO' representa órgãos federais/forças sem UF explícita (plotado em Brasília).",
         "chart_time": "📈 Gastos vs Anomalias (Mensal)",
         "scatter": "Dispersão: Valor × Score de Risco",
@@ -69,6 +71,7 @@ TRANS = {
         "kpi_estado": "Top State",
         "map_anom": "🗺️ Heatmap: Anomalies",
         "map_spend": "💰 Heatmap: Spending Volume",
+        "map_help": "⚠️ If map is blank: Toggle any filter (e.g., Classified Transactions) and switch back. This forces the browser to redraw the map.",
         "obs_uniao": "🔎 Note: 'UNIÃO' represents federal bodies without explicit state (plotted in Brasilia).",
         "chart_time": "📈 Spending vs Anomalies (Monthly)",
         "scatter": "Scatter: Value × Risk Score",
@@ -97,37 +100,12 @@ COORDS_ESTADOS = {
 # 2. CARREGAMENTO DE DADOS
 @st.cache_data
 def load_data():
-    path_parquet = "data/processed/cpgf_limpo_v8_completo.parquet"
-    path_csv = "df_test.csv"
-
-    df = pd.DataFrame()
-    if os.path.exists(path_parquet):
-        try: df = pd.read_parquet(path_parquet)
-        except: pass
-    elif os.path.exists(path_csv):
-        df = pd.read_csv(path_csv, low_memory=False)
-
-    if df.empty: return df
-
-    # Conversões
-    if "DATA TRANSAÇÃO" in df.columns:
-        df["DATA TRANSAÇÃO"] = pd.to_datetime(df["DATA TRANSAÇÃO"], errors="coerce")
-
-    num_cols = ["VALOR TRANSAÇÃO", "PRIORITY_SCORE", "LOF_SCORE", "SIGILOSO", "TECHNICAL_LABEL"]
-    for c in num_cols:
-        if c in df.columns:
-            df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
-
-    # Criar Priority Score se não existir (Inversão do LOF Score)
-    if "PRIORITY_SCORE" not in df.columns and "LOF_SCORE" in df.columns:
-        df["PRIORITY_SCORE"] = df["LOF_SCORE"].abs()
-
-    # Tratamento de Nulos em Textos
-    txt_cols = ["ESTADO_ESTIMADO", "NOME ÓRGÃO SUPERIOR", "NOME ÓRGÃO", "NOME UNIDADE GESTORA"]
-    for c in txt_cols:
-        if c in df.columns: df[c] = df[c].fillna("N/A")
-
-    return df
+    path = "functions/front/dashboard_data.parquet"
+    if not os.path.exists(path):
+        path = "dashboard_data.parquet"
+    if os.path.exists(path):
+        return pd.read_parquet(path)
+    return pd.DataFrame()
 
 df = load_data()
 
@@ -242,7 +220,7 @@ gastos com Cartões de Pagamento do Governo Federal (CPGF), ajudando auditorias 
 
 ---
 
-## 📊 1. O que o sistema faz?
+### 📊 1. O que o sistema faz?
 O painel permite que auditores e analistas:
 - Identifiquem gastos incomuns (“anomalias”).
 - Priorizem transações por risco financeiro.
@@ -251,7 +229,7 @@ O painel permite que auditores e analistas:
 
 ---
 
-## 🧠 2. Modelos de detecção (Score Técnico)
+### 🧠 2. Modelos de detecção (Score Técnico)
 Usamos um *ensemble* de modelos de anomalia:
 - **Isolation Forest** — isola pontos atípicos globalmente.
 - **Local Outlier Factor (LOF)** — detecta pontos com baixa densidade local.
@@ -260,7 +238,7 @@ A média dos scores desses modelos compõe o **Score Técnico** (indicador de es
 
 ---
 
-## 🔥 3. Pontuação de Risco (Priority Score)
+### 🔥 3. Pontuação de Risco (Priority Score)
 A **Pontuação de Risco** (denominada *Priority Score* em inglês) combina estranheza técnica com materialidade financeira:
 
 $$
@@ -276,7 +254,7 @@ Essa combinação evita que anomalias de valor ínfimo recebam prioridade acima 
 
 ---
 
-## 🔒 4. Transações Sigilosas
+### 🔒 4. Transações Sigilosas
 Algumas linhas da base são marcadas como **SIGILOSO = 1**. Essas transações costumam ter informações omitidas (data precisa, favorecido, descrição) por determinação legal ou judicial.
 
 ### Base Legal
@@ -290,7 +268,7 @@ No painel você escolhe analisar **Somente Sigilosas (Sim)** ou **Sem Sigilosas 
 
 ---
 
-## 🗂️ 5. Fonte dos Dados
+### 🗂️ 5. Fonte dos Dados
 - **Base:** Extrato detalhado dos Cartões de Pagamento do Governo Federal (CPGF), 2023–presente.
 - **Origem / Download:** Portal da Transparência — CPGF.
 - **Dicionário:** Dicionário de Dados — CPGF.
@@ -298,12 +276,12 @@ No painel você escolhe analisar **Somente Sigilosas (Sim)** ou **Sem Sigilosas 
 
 ---
 
-## 🧭 6. Observação sobre 'UNIÃO'
+### 🧭 6. Observação sobre 'UNIÃO'
 Quando não é possível inferir UF a partir do nome da unidade gestora, adotamos a categoria **UNIÃO**, que é apresentada como **DF (Brasília)** no mapa. Isso abrange órgãos federais com atuação nacional e forças armadas.
 
 ---
 
-## 📌 7. Aviso Importante
+### 📌 7. Aviso Importante
 O Jacurutu **não acusa fraude**; ele destaca comportamentos atípicos para orientar auditoria humana. Resultados devem ser interpretados por especialistas.
 
 """)
@@ -316,7 +294,7 @@ Jacurutu uses Data Science to surface unusual spending patterns in the Federal G
 
 ---
 
-## 📊 1. What the system does
+### 📊 1. What the system does
 The dashboard helps auditors and analysts:
 - Detect unusual spending (“anomalies”).
 - Prioritize transactions by financial risk.
@@ -325,7 +303,7 @@ The dashboard helps auditors and analysts:
 
 ---
 
-## 🧠 2. Detection models (Technical Score)
+### 🧠 2. Detection models (Technical Score)
 We use an ensemble of anomaly detectors:
 - **Isolation Forest** — isolates global outliers.
 - **Local Outlier Factor (LOF)** — finds locally low-density points.
@@ -334,7 +312,7 @@ The average output of these models forms the **Technical Score** (how statistica
 
 ---
 
-## 🔥 3. Risk Score (Priority Score)
+### 🔥 3. Risk Score (Priority Score)
 The final prioritization metric combines anomaly strength with financial materiality:
 
 $$
@@ -350,7 +328,7 @@ This prevents low-value anomalies from outranking high-impact transactions.
 
 ---
 
-## 🔒 4. Classified / Sensitive Transactions
+### 🔒 4. Classified / Sensitive Transactions
 Some records are marked **SIGILOSO = 1** (classified). These entries may lack precise date, beneficiary name, or detailed description due to legal restrictions or court orders.
 
 ### Legal Basis
@@ -364,7 +342,7 @@ The dashboard supports filtering: **Only sensitive (Yes)** or **Exclude sensitiv
 
 ---
 
-## 🗂️ 5. Data Sources
+### 🗂️ 5. Data Sources
 - **Dataset:** Federal Corporate Card transactions (CPGF), 2023–present.
 - **Source / Download:** CPGF on Portal da Transparência.
 - **Data Dictionary:** CPGF Data Dictionary.
@@ -372,12 +350,12 @@ The dashboard supports filtering: **Only sensitive (Yes)** or **Exclude sensitiv
 
 ---
 
-## 🧭 6. Note on 'UNIÃO'
+### 🧭 6. Note on 'UNIÃO'
 When a state's inference is not possible from the unit name, we use **UNIÃO**, plotted as **DF (Brasília)**. This includes federal bodies and military units without explicit state.
 
 ---
 
-## 📌 7. Important Notice
+### 📌 7. Important Notice
 Jacurutu **does not claim fraud**. It flags unusual patterns to guide human audit efforts.
 
 """)
@@ -418,9 +396,10 @@ with tab2:
     st.info(T["obs_uniao"])
 
 
-# MAPAS (HEATMAP) - CORREÇÃO DE RENDERIZAÇÃO
 
-    # 1. Preparação dos Dados (Com Spinner real cobrindo o cálculo)
+# MAPAS (HEATMAP)
+
+    # 1. Preparação dos Dados
     with st.spinner("Calculando geolocalização dos gastos..."):
         df_geo = df_f.groupby("ESTADO_ESTIMADO")[["VALOR TRANSAÇÃO", "PRIORITY_SCORE"]].agg(
             VALOR_TOTAL=("VALOR TRANSAÇÃO", "sum"),
@@ -446,9 +425,9 @@ with tab2:
     c1, c2 = st.columns(2)
 
     with c1:
-        st.subheader(T["map_anom"])
-        m1 = folium.Map(location=[-15.78, -47.93], zoom_start=3, tiles="CartoDB positron")
+        st.subheader(T["map_anom"], help=T["map_help"])
 
+        m1 = folium.Map(location=[-15.78, -47.93], zoom_start=3, tiles="CartoDB positron")
         if heat_anom_data:
             HeatMap(heat_anom_data, radius=25, blur=15, gradient={0.4: 'orange', 1: 'red'}).add_to(m1)
 
@@ -461,11 +440,12 @@ with tab2:
         )
 
     with c2:
-        st.subheader(T["map_spend"])
-        m2 = folium.Map(location=[-15.78, -47.93], zoom_start=3, tiles="CartoDB positron")
+        st.subheader(T["map_spend"], help=T["map_help"])
 
+        m2 = folium.Map(location=[-15.78, -47.93], zoom_start=3, tiles="CartoDB positron")
         if heat_spend_data:
             HeatMap(heat_spend_data, radius=25, blur=15, gradient={0.4: 'blue', 1: 'green'}).add_to(m2)
+
         st_folium(
             m2,
             height=400,
@@ -534,15 +514,56 @@ with tab2:
         use_container_width=True
     )
 
-    # --- EXPORT ---
+# --- EXPORT ---
     st.divider()
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df_f.head(5000).to_excel(writer, index=False)
+    st.subheader("📥 Exportação de Dados")
 
-    st.download_button(
-        label=T["export_btn"],
-        data=buffer.getvalue(),
-        file_name="jacurutu_filtrado.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    # 1. Definição das colunas limpas
+    cols_export = [
+        "DATA TRANSAÇÃO",
+        "NOME ÓRGÃO SUPERIOR",
+        "NOME ÓRGÃO",
+        "NOME UNIDADE GESTORA",
+        "NOME FAVORECIDO",
+        "VALOR TRANSAÇÃO",
+        "ESTADO_ESTIMADO",
+        "SIGILOSO",
+        "PRIORITY_SCORE"
+    ]
+    cols_final = [c for c in cols_export if c in df_f.columns]
+
+    col_xlsx, col_csv = st.columns(2)
+
+    # EXCEL
+    with col_xlsx:
+        st.markdown('#### 📊 Excel (.xlsx)')
+        st.caption("Ideal para relatórios pontuais com menor volumetria.")
+
+        limit_excel = 5000
+        buffer_xlsx = io.BytesIO()
+
+        with pd.ExcelWriter(buffer_xlsx, engine='openpyxl') as writer:
+            df_f[cols_final].head(limit_excel).to_excel(writer, index=False)
+
+        st.download_button(
+            label=f'Baixar Top {limit_excel} (Excel)',
+            data=buffer_xlsx.getvalue(),
+            file_name='jacurutu_top_risco.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            help=f'Devido ao peso do formato Excel, esta opção baixa apenas as {limit_excel} linhas de maior prioridade.'
+        )
+
+    # CSV
+    with col_csv:
+        st.markdown("#### 📝 CSV (.csv)")
+        st.caption('Ideal para auditoria completa e importação em outros sistemas.')
+
+        csv_data = df_f[cols_final].to_csv(index=False).encode('utf-8')
+
+        st.download_button(
+            label=f'Baixar Tudo ({len(df_f)} linhas)',
+            data=csv_data,
+            file_name="jacurutu_completo.csv",
+            mime="text/csv",
+            help='Baixa todos os dados filtrados atualmente, sem limite de linhas.'
+        )
