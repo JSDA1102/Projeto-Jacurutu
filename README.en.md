@@ -35,11 +35,13 @@ The project uses a **decoupled architecture** to ensure high dashboard performan
 
 ### 4.1. Ingestion & Advanced Cleaning
 * **Consolidation:** Merging monthly CSV files.
+* **Traceability:** Addition of the `SOURCE FILE` column to audit the data origin.
 * **Secrecy Handling:** Identifying and processing classified transactions (missing date/payee).
 * **Geo-Enrichment (NLP):** A text processing algorithm extracts location (State) from the Management Unit's name, enabling heatmap visualization.
 
 ### 4.2. Feature Engineering
 We create mathematical contexts to teach the AI what "normal" looks like:
+* **Temporal context:** creation of flags for imputed dates.
 * **Frequency Encoding:** Transforming categorical variables based on rarity.
 * **Golden Features (Ratios):** Statistical ratios (e.g., `Transaction Value / Agency Monthly Mean`) to detect subtle deviations.
 
