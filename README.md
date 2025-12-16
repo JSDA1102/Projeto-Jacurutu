@@ -55,10 +55,10 @@ Utilizamos uma estratégia de **Ensemble Não Supervisionado**:
 
 * **Detetive 1 (`Isolation Forest`):** Foca em isolar anomalias globais e valores extremos.
 * **Detetive 2 (`Local Outlier Factor`):** Analisa a densidade local, identificando pontos isolados em relação aos seus vizinhos imediatos.
-    * *Destaque Técnico:* Implementação de **Jittering** (ruído estatístico controlado) para lidar com a alta duplicidade de valores exatos em transações governamentais.
+    * *Destaque Técnico:* Implementação de **_Jittering_** (ruído estatístico controlado) para lidar com a alta duplicidade de valores exatos em transações governamentais.
 
 ### 4.4. Priorização e Investigação
-O score técnico sozinho não é suficiente para auditoria pública. Criamos o **Priority Score**:
+O score técnico sozinho não é suficiente para auditoria pública. Criamos o **_Priority Score_**:
 
 $$Prioridade = (0.7 \times ScoreTecnico) + (0.3 \times RiscoFinanceiro)$$
 
@@ -95,5 +95,5 @@ Isso garante que uma anomalia estatística de R$ 10,00 não tenha a mesma atenç
 * ✅ **Arquitetura de Produção:** Separação do ETL (`run_etl.py`) do Frontend.
 
 ### 🔮 Melhorias Futuras
-* **Autoencoder (Deep Learning):** Implementar redes neurais para reconstrução de padrões complexos não lineares.
+* **Autoencoder (_Deep Learning_):** Implementar redes neurais para reconstrução de padrões complexos não lineares.
 * **Previsão Orçamentária:** Modelos de séries temporais (Prophet/ARIMA) para prever gastos futuros.
