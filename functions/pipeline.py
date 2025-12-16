@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import os
 from sklearn.preprocessing import RobustScaler, MinMaxScaler
 from functions.clean_df import load_and_combine_csvs, clean_dataframe
 from functions.state_imput import apply_state_estimation
@@ -71,7 +72,7 @@ def combine_dataframes(df_lof_classified, df_lof_normal, df_if_classified, df_if
     # LOF_SCORE: Already negative, where more negative is higher risk.
     df_final['RISK_LOF_SCORE'] = df_final['LOF_SCORE'].abs()
 
-    # Normalize both risk scores 
+    # Normalize both risk scores
     scaler = RobustScaler()
 
     # Reshape scores for RobustScaler and fit/transform
@@ -110,3 +111,18 @@ def calculate_priority_score(df: pd.DataFrame):
     df = df.sort_values(by='PRIORITY_SCORE', ascending=False).reset_index(drop=True)
 
     return df
+
+def get_dashboard_data(raw_path):
+    """
+    Executa o pipeline completo (ETL + Modelos + Combinação + Score)
+    e retorna o DataFrame final pronto para o Dashboard.
+    """
+    results = run_pipeline(raw_path)
+    df_combined = combine_dataframes(
+        df_lof_classified=results['lof_classified'],
+        df_lof_normal=results['lof_normal'],
+        df_if_classified=results['if_classified'],
+        df_if_normal=results['if_normal']
+    )
+    df_dashboard = calculate_priority_score(df_combined)
+    return df_dashboard
