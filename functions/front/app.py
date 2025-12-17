@@ -22,9 +22,8 @@ try:
 except FileNotFoundError:
     logo_base64 = ""
 
-# ============================================================
-# CONFIGURAÇÃO GERAL DO STREAMLIT
-# ============================================================
+
+# > CONFIGURAÇÃO GERAL
 
 st.set_page_config(page_title="Projeto Jacurutu", page_icon="🦉", layout="wide")
 
@@ -292,9 +291,9 @@ else:
     st.title(T['title'])
     st.markdown(f"**{T['subtitle']}**")
 
-# ============================================================
-# MENU DE NAVEGAÇÃO
-# ============================================================
+
+# > MENU DE NAVEGAÇÃO
+
 selected = option_menu(
     menu_title=None,
     options=T["menu_items"],
@@ -315,9 +314,9 @@ selected = option_menu(
     }
 )
 
-# ============================================================
-# ABA CONCEITO
-# ============================================================
+
+# > ABA CONCEITO
+
 if selected == T["menu_items"][0]:
 
     if lang == "pt":
@@ -459,9 +458,9 @@ Jacurutu **does not claim fraud**. It flags unusual patterns to guide human audi
 
 """, unsafe_allow_html=True)
 
-# ============================================================
-# ABA DASHBOARD
-# ============================================================
+
+# > ABA DASHBOARD
+
 elif selected == T["menu_items"][1]:
 
     if df_f.empty:
@@ -495,7 +494,7 @@ elif selected == T["menu_items"][1]:
     st.divider()
     st.info(T["obs_uniao"])
 
-# MAPAS (HEATMAP)
+# MAPAS
 
     # 1. Preparação dos Dados
     with st.spinner("Calculando geolocalização dos gastos..."):
