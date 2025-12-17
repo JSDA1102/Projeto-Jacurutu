@@ -31,15 +31,8 @@ st.set_page_config(page_title="Projeto Jacurutu", page_icon="🦉", layout="wide
 st.markdown(
     """
     <style>
-    /* Importando FontAwesome */
     @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
 
-    /* 1. FUNDO GERAL DA SIDEBAR */
-    [data-testid="stSidebar"] {
-        background-color: #111827;
-    }
-
-    /* 2. GRADIENTE NOS TÍTULOS (H1, H2, H3 apenas) */
     h1, h2, h3 {
         background: -webkit-linear-gradient(45deg, #2DD4BF, #3B82F6);
         -webkit-background-clip: text;
@@ -48,12 +41,10 @@ st.markdown(
         width: fit-content;
     }
 
-    /* 3. CORREÇÃO PARA ÍCONES DENTRO DOS TÍTULOS */
     h1 i, h2 i, h3 i, h1 span, h2 span, h3 span {
         -webkit-text-fill-color: #2DD4BF !important;
     }
 
-    /* 4. ESTILIZAÇÃO DAS MÉTRICAS (KPIS) */
     [data-testid="stMetricLabel"] {
         color: #E5E7EB !important;
         font-size: 14px !important;
@@ -63,12 +54,10 @@ st.markdown(
         font-weight: 700 !important;
     }
 
-    /* 5. TEXTO PADRÃO */
     p, li, div {
         color: #E5E7EB;
     }
 
-    /* Ajuste para mapas brancos */
     .leaflet-container {
         color: #333 !important;
     }

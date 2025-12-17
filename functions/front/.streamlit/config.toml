@@ -1,7 +1,7 @@
 [theme]
 base = "dark"
-primaryColor = "#2DD4BF"
-backgroundColor = "#111827"
-secondaryBackgroundColor = "#1F2937"
-textColor = "#E5E7EB"
+primaryColor = "#2DD4BF"          # Verde Neon (Destaque)
+backgroundColor = "#02040A"       # Preto Azulado Profundo (Fundo Principal)
+secondaryBackgroundColor = "#1E293B" # Cinza Azulado (Barra Lateral - Mais claro)
+textColor = "#F3F4F6"             # Branco Gelo (Texto)
 font = "sans serif"
