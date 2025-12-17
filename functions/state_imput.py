@@ -82,47 +82,64 @@ TERMOS_UNIAO = [
     'GRUPAMENTO', 'SUPRIMENTO', 'EXERCITO', 'MARINHA', 'AERONAUTICA'
 ]
 
+# -----------------------------------------------------------------------------
+# 2. LÓGICA DE IMPUTAÇÃO
+# -----------------------------------------------------------------------------
+
 def _estimate_state_row(linha):
     """
-    Internal function to process a single row.
-    Uses the global constants defined above.
+    Função interna para processar uma única linha.
+    Tenta inferir o estado com base no texto combinado de Órgão e Unidade Gestora.
     """
-    texto = str(linha['NOME ÓRGÃO']) + " " + str(linha['NOME UNIDADE GESTORA'])
-    texto = texto.upper()
+    texto_bruto = str(linha['NOME ÓRGÃO']) + " " + str(linha['NOME UNIDADE GESTORA'])
+    texto = texto_bruto.upper()
 
+    # 1. Busca por Cidades Específicas
     for termo, uf in MAPA_CIDADES.items():
         if termo in texto:
             return uf
 
-    texto = texto.replace(" SEDE ", " ")
-    texto = texto.replace("PARADA", "")
+    # 2. Remover "SEDE" para não confundir com Sergipe (SE)
+    texto = re.sub(r'\bSEDE\b', ' ', texto)
+    texto = texto.replace("- SEDE", " ")
 
+    # 3. Casos Especiais de DF
     if 'PRESIDENCIA DA REPUBLICA' in texto or 'GABINETE DE SEGURANCA' in texto:
         return 'DF'
 
+    # 4. Busca por Padrão de Preposição: "EM SP", "DO RJ", "NO DF"
     padrao_preposicao = r'\b(NO|NA|DO|DA|DE|EM|AO)\s+(' + '|'.join(SIGLAS_CONFIAVEIS) + r')\b'
     match = re.search(padrao_preposicao, texto)
     if match:
         return match.group(2)
 
+    # 5. Busca Geral nos Mapas de Estados
     for uf, termos in MAPA_ESTADOS.items():
         for termo in termos:
-            if len(termo) > 3:
+            if len(termo) > 2:
                 if termo in texto:
                     return uf
-            elif re.search(r'\b' + re.escape(termo) + r'\b', texto):
-                return uf
 
+        # Verifica a Sigla (UF) isolada
+        if re.search(r'\b' + re.escape(uf) + r'\b', texto):
+            return uf
+
+    # 6. Termos Genéricos que indicam UNIÃO
     for termo in TERMOS_UNIAO:
         if termo in texto:
             return 'UNIÃO'
 
+    # 7. Fallback
     return 'UNIÃO'
 
 def apply_state_estimation(df):
     """
-    Applies the state estimation logic to the entire DataFrame.
+    Aplica a lógica de estimação de estado para todo o DataFrame.
     """
     df_resultado = df.copy()
-    df_resultado['ESTADO_ESTIMADO'] = df_resultado.apply(_estimate_state_row, axis=1)
+    if not df_resultado.empty:
+        df_resultado['ESTADO_ESTIMADO'] = df_resultado.apply(_estimate_state_row, axis=1)
+    else:
+        df_resultado['ESTADO_ESTIMADO'] = [] # Garante coluna vazia se input vazio
+
     return df_resultado
