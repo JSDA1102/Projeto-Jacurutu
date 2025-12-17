@@ -1,30 +1,89 @@
+import os
+import io
+import base64
+from datetime import datetime, timedelta
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from datetime import datetime, timedelta
-import io
-import os
 import folium
 from folium.plugins import HeatMap
 from streamlit_folium import st_folium
+from streamlit_option_menu import option_menu
 
-# ============================================================
-# CONFIGURAÇÃO GERAL DO STREAMLIT
-# ============================================================
+# Caminho do logo
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOGO_PATH = os.path.join(BASE_DIR, "logo.png")
+
+# Converte o logo para base64
+try:
+    with open(LOGO_PATH, "rb") as f:
+        logo_base64 = base64.b64encode(f.read()).decode()
+except FileNotFoundError:
+    logo_base64 = ""
+
+
+# > CONFIGURAÇÃO GERAL
 
 st.set_page_config(page_title="Projeto Jacurutu", page_icon="🦉", layout="wide")
 
-## LOCAL PARA DESIGN
+# CSS
+st.markdown(
+    """
+    <style>
+    /* Importando FontAwesome */
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
+
+    /* 1. FUNDO GERAL DA SIDEBAR */
+    [data-testid="stSidebar"] {
+        background-color: #111827;
+    }
+
+    /* 2. GRADIENTE NOS TÍTULOS (H1, H2, H3 apenas) */
+    h1, h2, h3 {
+        background: -webkit-linear-gradient(45deg, #2DD4BF, #3B82F6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800 !important;
+        width: fit-content;
+    }
+
+    /* 3. CORREÇÃO PARA ÍCONES DENTRO DOS TÍTULOS */
+    h1 i, h2 i, h3 i, h1 span, h2 span, h3 span {
+        -webkit-text-fill-color: #2DD4BF !important;
+    }
+
+    /* 4. ESTILIZAÇÃO DAS MÉTRICAS (KPIS) */
+    [data-testid="stMetricLabel"] {
+        color: #E5E7EB !important;
+        font-size: 14px !important;
+    }
+    [data-testid="stMetricValue"], [data-testid="stMetricValue"] > div {
+        color: #2DD4BF !important;
+        font-weight: 700 !important;
+    }
+
+    /* 5. TEXTO PADRÃO */
+    p, li, div {
+        color: #E5E7EB;
+    }
+
+    /* Ajuste para mapas brancos */
+    .leaflet-container {
+        color: #333 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # 1. TRADUÇÕES E CONSTANTES
 TRANS = {
     "pt": {
         "title": "🦉 Projeto Jacurutu",
         "subtitle": "Monitoramento inteligente de gastos públicos via detecção de anomalias",
-        "tab_concept": "📜 Conceito",
-        "tab_dashboard": "🔭 Dashboard",
-        "sidebar_filters": "🌲 Filtros da Floresta",
+        "menu_items": ["Conceito", "Dashboard"],
+        "sidebar_filters": '<i class="fa-solid fa-tree" style="margin-right:0.5rem;"></i> Filtros da Floresta',
         "filter_estado": "Estado (UF)",
         "filter_orgsup": "Órgão Superior",
         "filter_org": "Órgão",
@@ -38,23 +97,27 @@ TRANS = {
         "kpi_valor": "Valor total filtrado",
         "kpi_score": "Maior Risco (Score)",
         "kpi_estado": "Estado Principal",
-        "map_anom": "🗺️ Mapa de Calor: Risco & Anomalias",
-        "map_spend": "💰 Mapa de Calor: Volume de Gastos",
-        "map_help": "⚠️ Se o mapa não aparecer: Altere qualquer filtro (ex: Transações Sigilosas) e retorne. Isso força o navegador a redesenhar o mapa.",
-        "obs_uniao": "🔎 Obs.: 'UNIÃO' representa órgãos federais/forças sem UF explícita (plotado em Brasília).",
-        "chart_time": "📈 Gastos vs Anomalias (Mensal)",
+        "map_anom": '<i class="fa-solid fa-map" style="margin-right:8px;"></i> Mapa de Calor: Risco & Anomalias',
+        "map_spend": '<i class="fa-solid fa-dollar-sign" style="margin-right:8px;"></i> Mapa de Calor: Volume de Gastos',
+        "obs_uniao": "🔍 Obs.: \"UNIÃO\" representa órgãos federais/forças sem UF explícita (plotado em Brasília).",
+        "chart_time": '<i class="fa-solid fa-chart-line" style="margin-right:8px;"></i> Gastos vs Anomalias (Mensal)',
         "scatter": "Dispersão: Valor × Score de Risco",
         "table": "Top 100 - Maior Risco",
-        "export_btn": "📥 Baixar Excel Filtrado",
-        "footer": "🦉 Projeto Jacurutu — 2025",
-        "performance_tip": "Dica: Filtre por Estado/Órgão para acelerar visualizações."
+        "performance_tip": "Dica: Filtre por Estado/Órgão para acelerar visualizações.",
+        "export_title": "Exportação de Dados",
+        "excel_cap": "Ideal para relatórios pontuais com menor volumetria.",
+        "excel_btn": "Baixar Top",
+        "excel_help": "Devido ao peso do formato Excel, esta opção baixa apenas as {} linhas de maior prioridade.",
+        "csv_cap": "Ideal para auditoria completa e importação em outros sistemas.",
+        "csv_btn": "Baixar Tudo",
+        "csv_help": "Baixa todos os dados filtrados atualmente, sem limite de linhas.",
+        "rows_label": "linhas"
     },
     "en": {
         "title": "🦉 Project Jacurutu",
         "subtitle": "Intelligent monitoring of public spending via anomaly detection",
-        "tab_concept": "📜 Concept",
-        "tab_dashboard": "🔭 Dashboard",
-        "sidebar_filters": "🌲 Forest Filters",
+        "menu_items": ["Concept", "Dashboard"],
+        "sidebar_filters": '<i class="fa-solid fa-tree" style="margin-right:0.5rem;"></i> Forest Filters',
         "filter_estado": "State (UF)",
         "filter_orgsup": "Superior Agency",
         "filter_org": "Agency",
@@ -68,16 +131,21 @@ TRANS = {
         "kpi_valor": "Total Amount",
         "kpi_score": "Highest Risk Score",
         "kpi_estado": "Top State",
-        "map_anom": "🗺️ Heatmap: Anomalies",
-        "map_spend": "💰 Heatmap: Spending Volume",
-        "map_help": "⚠️ If map is blank: Toggle any filter (e.g., Classified Transactions) and switch back. This forces the browser to redraw the map.",
-        "obs_uniao": "🔎 Note: 'UNIÃO' represents federal bodies without explicit state (plotted in Brasilia).",
-        "chart_time": "📈 Spending vs Anomalies (Monthly)",
+        "map_anom": '<i class="fa-solid fa-map"></i> Heatmap: Anomalies',
+        "map_spend": '<i class="fa-solid fa-dollar-sign"></i> Heatmap: Spending Volume',
+        "obs_uniao": '🔍 Note: "UNIÃO" represents federal bodies without explicit state (plotted in Brasilia).',
+        "chart_time": '<i class="fa-solid fa-chart-line"></i> Spending vs Anomalies (Monthly)',
         "scatter": "Scatter: Value × Risk Score",
         "table": "Top 100 - Highest Risk",
-        "export_btn": "📥 Download Excel",
-        "footer": "🦉 Project Jacurutu — 2025",
-        "performance_tip": "Tip: Filter by State/Agency to speed up visuals."
+        "performance_tip": "Tip: Filter by State/Agency to speed up visuals.",
+        "export_title": "Data Export",
+        "excel_cap": "Best for specific reports and quick viewing.",
+        "excel_btn": "Download Top",
+        "excel_help": "Due to Excel file size, this option downloads only the top {} highest priority rows.",
+        "csv_cap": "Best for full audits and importing into other systems.",
+        "csv_btn": "Download All",
+        "csv_help": "Downloads all currently filtered data, with no row limit.",
+        "rows_label": "rows"
     }
 }
 
@@ -108,13 +176,14 @@ def load_data():
 
 df = load_data()
 
+
 # 3. SIDEBAR + FILTROS EM CASCATA
 with st.sidebar:
     lang_opt = st.radio("Idioma / Language", ["Português", "English"], horizontal=True)
     lang = "pt" if lang_opt == "Português" else "en"
     T = TRANS[lang]
 
-    st.markdown(f"### {T['sidebar_filters']}")
+    st.markdown(f'<h3 style="margin-bottom:0.5rem;">{T["sidebar_filters"]}</h3>', unsafe_allow_html=True)
 
     if df.empty:
         st.warning(T["warning_nodata"])
@@ -201,25 +270,60 @@ if 'date_sel' in locals() and isinstance(date_sel, (list, tuple)) and len(date_s
         pass
 
 # 5. Layout Principal
-st.title(T["title"])
-st.markdown(f"**{T['subtitle']}**")
-tab1, tab2 = st.tabs([T["tab_concept"], T["tab_dashboard"]])
+if logo_base64:
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; gap:24px;">
+            <img src="data:image/png;base64,{logo_base64}" style="width:54px; margin-top:8px;" />
+            <div style="margin-top:22px;">
+                <h1 style="margin:10; font-size:48px; line-height:1.05;">
+                    {T['title'].replace('🦉','')}
+                </h1>
+            </div>
+        </div>
+        <p style="font-size:20px; color:#9ca3af; margin-top:6px; max-width:900px;">
+            {T['subtitle']}
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+else:
+    st.title(T['title'])
+    st.markdown(f"**{T['subtitle']}**")
 
-# ============================================================
-# ABA CONCEITO
-# ============================================================
-with tab1:
+
+# > MENU DE NAVEGAÇÃO
+
+selected = option_menu(
+    menu_title=None,
+    options=T["menu_items"],
+    icons=["file-text", "search"],
+    default_index=0,
+    orientation="horizontal",
+    styles={
+        "container": {"padding": "0!important", "background-color": "#1F2937"},
+        "icon": {"color": "#2DD4BF", "font-size": "18px"},
+        "nav-link": {
+            "font-size": "16px",
+            "text-align": "center",
+            "margin": "0px",
+            "--hover-color": "#374151",
+            "color": "#E5E7EB"
+        },
+        "nav-link-selected": {"background-color": "#0D9488", "color": "white"},
+    }
+)
+
+
+# > ABA CONCEITO
+
+if selected == T["menu_items"][0]:
+
     if lang == "pt":
         st.markdown("""
-# 🦉 Projeto Jacurutu
-**Monitoramento inteligente de gastos públicos por detecção de anomalias**
+### <i class="fa-solid fa-chart-column" style="margin-right:8px;"></i> 1. O que o sistema faz?
+O Jacurutu aplica técnicas de Ciência de Dados para identificar padrões atípicos nos gastos com Cartões de Pagamento do Governo Federal (CPGF), ajudando auditorias a priorizar casos de maior impacto.
 
-O Jacurutu aplica técnicas de Ciência de Dados para identificar padrões atípicos nos
-gastos com Cartões de Pagamento do Governo Federal (CPGF), ajudando auditorias a priorizar casos de maior impacto.
-
----
-
-### 📊 1. O que o sistema faz?
 O painel permite que auditores e analistas:
 - Identifiquem gastos incomuns (“anomalias”).
 - Priorizem transações por risco financeiro.
@@ -228,7 +332,7 @@ O painel permite que auditores e analistas:
 
 ---
 
-### 🧠 2. Modelos de detecção (Score Técnico)
+### <i class="fa-solid fa-brain" style="margin-right:8px;"></i> 2. Modelos de detecção (Score Técnico)
 Usamos um *ensemble* de modelos de anomalia:
 - **Isolation Forest** — isola pontos atípicos globalmente.
 - **Local Outlier Factor (LOF)** — detecta pontos com baixa densidade local.
@@ -237,7 +341,7 @@ A média dos scores desses modelos compõe o **Score Técnico** (indicador de es
 
 ---
 
-### 🔥 3. Pontuação de Risco (Priority Score)
+### <i class="fa-solid fa-fire" style="margin-right:8px;"></i> 3. Pontuação de Risco (Priority Score)
 A **Pontuação de Risco** (denominada *Priority Score* em inglês) combina estranheza técnica com materialidade financeira:
 
 $$
@@ -253,10 +357,10 @@ Essa combinação evita que anomalias de valor ínfimo recebam prioridade acima 
 
 ---
 
-### 🔒 4. Transações Sigilosas
+### <i class="fa-solid fa-lock" style="margin-right:8px;"></i> 4. Transações Sigilosas
 Algumas linhas da base são marcadas como **SIGILOSO = 1**. Essas transações costumam ter informações omitidas (data precisa, favorecido, descrição) por determinação legal ou judicial.
 
-### Base Legal
+#### Base Legal
 A classificação é regulada pela **Lei nº 12.527/2011 — LAI** (Lei de Acesso à Informação) e decretos complementares. O sigilo pode ser aplicado quando a divulgação puder:
 - comprometer defesa ou soberania;
 - colocar vidas em risco;
@@ -267,7 +371,7 @@ No painel você escolhe analisar **Somente Sigilosas (Sim)** ou **Sem Sigilosas 
 
 ---
 
-### 🗂️ 5. Fonte dos Dados
+### <i class="fa-solid fa-folder-open" style="margin-right:8px;"></i> 5. Fonte de Dados
 - **Base:** Extrato detalhado dos Cartões de Pagamento do Governo Federal (CPGF), 2023–presente.
 - **Origem / Download:** Portal da Transparência — CPGF.
 - **Dicionário:** Dicionário de Dados — CPGF.
@@ -275,25 +379,20 @@ No painel você escolhe analisar **Somente Sigilosas (Sim)** ou **Sem Sigilosas 
 
 ---
 
-### 🧭 6. Observação sobre 'UNIÃO'
+### <i class="fa-solid fa-compass" style="margin-right:8px;"></i> 6. Observação sobre 'UNIÃO'
 Quando não é possível inferir UF a partir do nome da unidade gestora, adotamos a categoria **UNIÃO**, que é apresentada como **DF (Brasília)** no mapa. Isso abrange órgãos federais com atuação nacional e forças armadas.
 
 ---
 
-### 📌 7. Aviso Importante
+### <i class="fa-solid fa-circle-exclamation" style="margin-right:8px;"></i> 7. Aviso Importante
 O Jacurutu **não acusa fraude**; ele destaca comportamentos atípicos para orientar auditoria humana. Resultados devem ser interpretados por especialistas.
 
-""")
+""", unsafe_allow_html=True)
     else:
         st.markdown("""
-# 🦉 Project Jacurutu
-**Intelligent monitoring of public spending using anomaly detection**
-
+### <i class="fa-solid fa-chart-column" style="margin-right:8px;"></i> 1. What the system does
 Jacurutu uses Data Science to surface unusual spending patterns in the Federal Government Corporate Card dataset (CPGF), helping auditors prioritize the most impactful cases.
 
----
-
-### 📊 1. What the system does
 The dashboard helps auditors and analysts:
 - Detect unusual spending (“anomalies”).
 - Prioritize transactions by financial risk.
@@ -302,7 +401,7 @@ The dashboard helps auditors and analysts:
 
 ---
 
-### 🧠 2. Detection models (Technical Score)
+### <i class="fa-solid fa-brain" style="margin-right:8px;"></i> 2. Detection models (Technical Score)
 We use an ensemble of anomaly detectors:
 - **Isolation Forest** — isolates global outliers.
 - **Local Outlier Factor (LOF)** — finds locally low-density points.
@@ -311,7 +410,7 @@ The average output of these models forms the **Technical Score** (how statistica
 
 ---
 
-### 🔥 3. Risk Score (Priority Score)
+### <i class="fa-solid fa-fire" style="margin-right:8px;"></i> 3. Risk Score (Priority Score)
 The final prioritization metric combines anomaly strength with financial materiality:
 
 $$
@@ -327,10 +426,10 @@ This prevents low-value anomalies from outranking high-impact transactions.
 
 ---
 
-### 🔒 4. Classified / Sensitive Transactions
+### <i class="fa-solid fa-lock" style="margin-right:8px;"></i> 4. Classified / Sensitive Transactions
 Some records are marked **SIGILOSO = 1** (classified). These entries may lack precise date, beneficiary name, or detailed description due to legal restrictions or court orders.
 
-### Legal Basis
+#### Legal Basis
 Classification follows **Law 12.527/2011 (LAI)** and complementary decrees. Disclosure may be restricted if it could:
 - compromise national defense or international relations;
 - endanger lives;
@@ -341,7 +440,7 @@ The dashboard supports filtering: **Only sensitive (Yes)** or **Exclude sensitiv
 
 ---
 
-### 🗂️ 5. Data Sources
+### <i class="fa-solid fa-folder-open" style="margin-right:8px;"></i> 5. Data Sources
 - **Dataset:** Federal Corporate Card transactions (CPGF), 2023–present.
 - **Source / Download:** CPGF on Portal da Transparência.
 - **Data Dictionary:** CPGF Data Dictionary.
@@ -349,20 +448,21 @@ The dashboard supports filtering: **Only sensitive (Yes)** or **Exclude sensitiv
 
 ---
 
-### 🧭 6. Note on 'UNIÃO'
+### <i class="fa-solid fa-compass" style="margin-right:8px;"></i> 6. Note on 'UNIÃO'
 When a state's inference is not possible from the unit name, we use **UNIÃO**, plotted as **DF (Brasília)**. This includes federal bodies and military units without explicit state.
 
 ---
 
-### 📌 7. Important Notice
+### <i class="fa-solid fa-circle-exclamation" style="margin-right:8px;"></i> 7. Important Notice
 Jacurutu **does not claim fraud**. It flags unusual patterns to guide human audit efforts.
 
-""")
+""", unsafe_allow_html=True)
 
-# ============================================================
-# ABA DASHBOARD
-# ============================================================
-with tab2:
+
+# > ABA DASHBOARD
+
+elif selected == T["menu_items"][1]:
+
     if df_f.empty:
         st.warning(T["warning_filter_empty"])
         st.stop()
@@ -383,7 +483,7 @@ with tab2:
     # KPI 2: Valor Total
     k2.metric(T["kpi_valor"], f"R$ {df_f['VALOR TRANSAÇÃO'].sum():,.2f}")
 
-    # KPI 3: Valor das Anomalias (MUDANÇA SOLICITADA)
+    # KPI 3: Valor das Anomalias
     total_anomalo = df_anomalias['VALOR TRANSAÇÃO'].sum()
     k3.metric("Valor em Anomalias", f"R$ {total_anomalo:,.2f}")
 
@@ -394,9 +494,7 @@ with tab2:
     st.divider()
     st.info(T["obs_uniao"])
 
-
-
-# MAPAS (HEATMAP)
+# MAPAS
 
     # 1. Preparação dos Dados
     with st.spinner("Calculando geolocalização dos gastos..."):
@@ -423,55 +521,51 @@ with tab2:
 
     c1, c2 = st.columns(2)
 
+    # MAPA 1: ANOMALIAS
     with c1:
-        st.subheader(T["map_anom"], help=T["map_help"])
+        st.markdown(
+        f"""
+        <h3 style="display:flex; align-items:center; gap:6px;">
+            {T["map_anom"]}
+        </h3>
+        """, unsafe_allow_html=True)
 
         m1 = folium.Map(location=[-15.78, -47.93], zoom_start=3, tiles="CartoDB positron")
         if heat_anom_data:
             HeatMap(heat_anom_data, radius=25, blur=15, gradient={0.4: 'orange', 1: 'red'}).add_to(m1)
 
-        st_folium(
-            m1,
-            height=400,
-            width=None,
-            key=f"mapa_anomalia_{map_id}",
-            returned_objects=[]
-        )
+        st_folium(m1, height=400, width=None, key=f"mapa_anomalia_{map_id}", returned_objects=[])
 
+    # MAPA 2: GASTOS
     with c2:
-        st.subheader(T["map_spend"], help=T["map_help"])
+        st.markdown(
+            f"""
+            <h3 style="display:flex; align-items:center; gap:6px;">
+                {T["map_spend"]}
+            </h3>
+            """, unsafe_allow_html=True)
 
         m2 = folium.Map(location=[-15.78, -47.93], zoom_start=3, tiles="CartoDB positron")
         if heat_spend_data:
             HeatMap(heat_spend_data, radius=25, blur=15, gradient={0.4: 'blue', 1: 'green'}).add_to(m2)
 
-        st_folium(
-            m2,
-            height=400,
-            width=None,
-            key=f"mapa_gastos_{map_id}",
-            returned_objects=[]
-        )
+        st_folium(m2, height=400, width=None, key=f"mapa_gastos_{map_id}", returned_objects=[])
 
 
     # GRÁFICO TEMPORAL
-    st.subheader(T["chart_time"])
+    st.markdown(f"### {T['chart_time']}", unsafe_allow_html=True)
 
-    # 1. Criar coluna MES no dataframe principal
     df_f["MES"] = df_f["DATA TRANSAÇÃO"].dt.to_period("M").astype(str)
 
-    # 2. Recriar o filtro de anomalias
     if "TECHNICAL_LABEL" in df_f.columns:
             df_anom_chart = df_f[df_f["TECHNICAL_LABEL"] == -1]
     else:
             corte_risco = df_f["PRIORITY_SCORE"].quantile(0.90)
             df_anom_chart = df_f[df_f["PRIORITY_SCORE"] >= corte_risco]
 
-    # 3. Agregações
     total_by_month = df_f.groupby("MES")["VALOR TRANSAÇÃO"].sum().reset_index().rename(columns={"VALOR TRANSAÇÃO":"TOTAL"})
     anom_by_month = df_anom_chart.groupby("MES")["VALOR TRANSAÇÃO"].sum().reset_index().rename(columns={"VALOR TRANSAÇÃO":"ANOMALIA"})
 
-    # 4. Merge e Plot
     time_df = pd.merge(total_by_month, anom_by_month, on="MES", how="left").fillna(0)
     time_df = time_df.sort_values("MES")
 
@@ -481,9 +575,10 @@ with tab2:
         y=["TOTAL", "ANOMALIA"],
         markers=True,
         labels={"value": "R$", "MES": "Mês"},
-        color_discrete_map={"TOTAL": "#1F6F46", "ANOMALIA": "#FF4B4B"}
+        color_discrete_map={"TOTAL": "#2DD4BF", "ANOMALIA": "#EF4444"},
+        template="plotly_dark"
     )
-    fig_time.update_layout(height=400, xaxis_title="Mês", legend_title="")
+    fig_time.update_layout(height=400, xaxis_title="Mês", legend_title="", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
     st.plotly_chart(fig_time, use_container_width=True)
 
     #  SCATTER PLOT
@@ -492,8 +587,11 @@ with tab2:
     fig_sc = px.scatter(
         df_scat, x="VALOR TRANSAÇÃO", y="PRIORITY_SCORE",
         color="NOME ÓRGÃO SUPERIOR", size="VALOR TRANSAÇÃO",
-        hover_data=["NOME FAVORECIDO", "ESTADO_ESTIMADO"], color_continuous_scale="Viridis"
+        hover_data=["NOME FAVORECIDO", "ESTADO_ESTIMADO"],
+        color_continuous_scale="Tealgrn",
+        template="plotly_dark"
     )
+    fig_sc.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
     st.plotly_chart(fig_sc, use_container_width=True)
 
     # --- TABELA TOP 100 ---
@@ -502,7 +600,6 @@ with tab2:
     cols_show = ["DATA TRANSAÇÃO", "NOME ÓRGÃO", "NOME FAVORECIDO", "VALOR TRANSAÇÃO", "PRIORITY_SCORE", "ESTADO_ESTIMADO", "SIGILOSO"]
     cols_exist = [c for c in cols_show if c in df_f.columns]
 
-    # Ordena as anomalias primeiro
     df_top = df_f.sort_values("PRIORITY_SCORE", ascending=False).head(100)[cols_exist]
 
     st.dataframe(
@@ -515,28 +612,20 @@ with tab2:
 
 # --- EXPORT ---
     st.divider()
-    st.subheader("📥 Exportação de Dados")
+    st.markdown(f"""<h3><i class="fa-solid fa-download" style="margin-right:8px;"></i> {T['export_title']}</h3>""", unsafe_allow_html=True)
 
-    # 1. Definição das colunas limpas
     cols_export = [
-        "DATA TRANSAÇÃO",
-        "NOME ÓRGÃO SUPERIOR",
-        "NOME ÓRGÃO",
-        "NOME UNIDADE GESTORA",
-        "NOME FAVORECIDO",
-        "VALOR TRANSAÇÃO",
-        "ESTADO_ESTIMADO",
-        "SIGILOSO",
-        "PRIORITY_SCORE"
+        "DATA TRANSAÇÃO", "NOME ÓRGÃO SUPERIOR", "NOME ÓRGÃO",
+        "NOME UNIDADE GESTORA", "NOME FAVORECIDO", "VALOR TRANSAÇÃO",
+        "ESTADO_ESTIMADO", "SIGILOSO", "PRIORITY_SCORE"
     ]
     cols_final = [c for c in cols_export if c in df_f.columns]
 
     col_xlsx, col_csv = st.columns(2)
 
-    # EXCEL
     with col_xlsx:
-        st.markdown('#### 📊 Excel (.xlsx)')
-        st.caption("Ideal para relatórios pontuais com menor volumetria.")
+        st.markdown("""<p><i class="fa-solid fa-file-excel"></i> Excel (.xlsx)</p>""", unsafe_allow_html=True)
+        st.caption(T["excel_cap"])
 
         limit_excel = 5000
         buffer_xlsx = io.BytesIO()
@@ -545,24 +634,23 @@ with tab2:
             df_f[cols_final].head(limit_excel).to_excel(writer, index=False)
 
         st.download_button(
-            label=f'Baixar Top {limit_excel} (Excel)',
+            label=f"{T['excel_btn']} {limit_excel} (Excel)",
             data=buffer_xlsx.getvalue(),
             file_name='jacurutu_top_risco.xlsx',
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            help=f'Devido ao peso do formato Excel, esta opção baixa apenas as {limit_excel} linhas de maior prioridade.'
+            help=T["excel_help"].format(limit_excel)
         )
 
-    # CSV
     with col_csv:
-        st.markdown("#### 📝 CSV (.csv)")
-        st.caption('Ideal para auditoria completa e importação em outros sistemas.')
+        st.markdown("""<p><i class="fa-solid fa-file-csv"></i> CSV (.csv)</p>""", unsafe_allow_html=True)
+        st.caption(T["csv_cap"])
 
         csv_data = df_f[cols_final].to_csv(index=False).encode('utf-8')
 
         st.download_button(
-            label=f'Baixar Tudo ({len(df_f)} linhas)',
+            label=f"{T['csv_btn']} ({len(df_f)} {T['rows_label']})",
             data=csv_data,
             file_name="jacurutu_completo.csv",
             mime="text/csv",
-            help='Baixa todos os dados filtrados atualmente, sem limite de linhas.'
+            help=T["csv_help"]
         )
