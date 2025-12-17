@@ -604,9 +604,21 @@ elif selected == T["menu_items"][1]:
     st.markdown(f"""<h3><i class="fa-solid fa-download" style="margin-right:8px;"></i> {T['export_title']}</h3>""", unsafe_allow_html=True)
 
     cols_export = [
-        "DATA TRANSAÇÃO", "NOME ÓRGÃO SUPERIOR", "NOME ÓRGÃO",
-        "NOME UNIDADE GESTORA", "NOME FAVORECIDO", "VALOR TRANSAÇÃO",
-        "ESTADO_ESTIMADO", "SIGILOSO", "PRIORITY_SCORE"
+    "CÓDIGO ÓRGÃO SUPERIOR",
+    "NOME ÓRGÃO SUPERIOR",
+    "CÓDIGO ÓRGÃO","NOME ÓRGÃO",
+    "CÓDIGO UNIDADE GESTORA",
+    "NOME UNIDADE GESTORA",
+    "ANO EXTRATO",
+    "MÊS EXTRATO",
+    "CNPJ OU CPF FAVORECIDO",
+    "NOME FAVORECIDO",
+    "TRANSAÇÃO",
+    "DATA TRANSAÇÃO",
+    "VALOR TRANSAÇÃO",
+    "ESTADO_ESTIMADO",
+    "SIGILOSO",
+    "PRIORITY_SCORE"
     ]
     cols_final = [c for c in cols_export if c in df_f.columns]
 
