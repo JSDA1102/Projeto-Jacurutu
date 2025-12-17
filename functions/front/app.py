@@ -586,7 +586,7 @@ elif selected == T["menu_items"][1]:
     # --- TABELA TOP 100 ---
     st.divider()
     st.subheader(T["table"])
-    cols_show = ["DATA TRANSAÇÃO", "NOME ÓRGÃO", "NOME FAVORECIDO", "VALOR TRANSAÇÃO", "PRIORITY_SCORE", "ESTADO_ESTIMADO", "SIGILOSO"]
+    cols_show = ["DATA TRANSAÇÃO", "NOME ÓRGÃO", "NOME FAVORECIDO", "VALOR TRANSAÇÃO", "TRANSAÇÃO", "PRIORITY_SCORE", "ESTADO_ESTIMADO"]
     cols_exist = [c for c in cols_show if c in df_f.columns]
 
     df_top = df_f.sort_values("PRIORITY_SCORE", ascending=False).head(100)[cols_exist]
