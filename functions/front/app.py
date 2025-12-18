@@ -84,7 +84,7 @@ TRANS = {
         "warning_filter_empty": "Nenhum registro encontrado com os filtros aplicados.",
         "kpi_trans": "Transações filtradas",
         "kpi_valor": "Valor total filtrado",
-        "kpi_score": "Maior Risco (Score)",
+        "kpi_anom_valor": "Valor total das anomalias",
         "kpi_estado": "Estado Principal",
         "map_anom": '<i class="fa-solid fa-map" style="margin-right:8px;"></i> Mapa de Calor: Risco & Anomalias',
         "map_spend": '<i class="fa-solid fa-dollar-sign" style="margin-right:8px;"></i> Mapa de Calor: Volume de Gastos',
@@ -118,7 +118,7 @@ TRANS = {
         "warning_filter_empty": "No records match the filters.",
         "kpi_trans": "Filtered Transactions",
         "kpi_valor": "Total Amount",
-        "kpi_score": "Highest Risk Score",
+        "kpi_anom_valor": "Total Anomalies Value",
         "kpi_estado": "Top State",
         "map_anom": '<i class="fa-solid fa-map"></i> Heatmap: Anomalies',
         "map_spend": '<i class="fa-solid fa-dollar-sign"></i> Heatmap: Spending Volume',
@@ -474,7 +474,7 @@ elif selected == T["menu_items"][1]:
 
     # KPI 3: Valor das Anomalias
     total_anomalo = df_anomalias['VALOR TRANSAÇÃO'].sum()
-    k3.metric("Valor em Anomalias", f"R$ {total_anomalo:,.2f}")
+    k3.metric(T["kpi_anom_valor"], f"R$ {total_anomalo:,.2f}")
 
     # KPI 4: Estado Principal
     top_state = df_f["ESTADO_ESTIMADO"].mode()[0] if not df_f.empty else "-"
