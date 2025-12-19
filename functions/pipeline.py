@@ -3,7 +3,7 @@ import numpy as np
 import os
 from sklearn.preprocessing import RobustScaler, MinMaxScaler
 from functions.clean_df import load_and_combine_csvs, clean_dataframe
-from functions.state_input import apply_state_estimation
+from functions.state_imput import apply_state_estimation
 from functions.feature_engineering import feature_engineering
 from functions.models import run_lof_normal, run_lof_classified, run_if_normal, run_if_classified
 
