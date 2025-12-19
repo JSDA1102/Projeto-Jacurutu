@@ -618,7 +618,8 @@ elif selected == T["menu_items"][1]:
     "VALOR TRANSAÇÃO",
     "ESTADO_ESTIMADO",
     "SIGILOSO",
-    "PRIORITY_SCORE"
+    "PRIORITY_SCORE",
+    "TECHNICAL_LABEL"
     ]
     cols_final = [c for c in cols_export if c in df_f.columns]
 
