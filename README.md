@@ -70,12 +70,26 @@ Isso garante que uma anomalia estatística de R$ 10,00 não tenha a mesma atenç
     ```bash
     pip install -r requirements.txt
     ```
-2.  **Execução do ETL (Geração dos Dados):**
+2.  **Atualização da Base de Dados (Download Automático):**
+    Este passo baixa automaticamente os meses faltantes do Portal da Transparência,
+    extrai os CSVs para `raw_data/` e reexecuta o ETL para gerar o `.parquet`.
+    ```bash
+    python download_data.py
+    ```
+    *Opcional:*
+    ```bash
+    python download_data.py --dry-run        # mostra o plano, sem baixar
+    python download_data.py --start 202501   # baixa a partir de jan/2025
+    python download_data.py --end 202606     # baixa até jun/2026
+    python download_data.py --no-etl         # só baixa/extrai, sem processar
+    ```
+3.  **Execução do ETL (Geração dos Dados):**
     Este passo processa os CSVs brutos, treina os modelos e salva o arquivo `.parquet`.
+    (Opcional — já é executado automaticamente pelo `download_data.py`.)
     ```bash
     python run_etl.py
     ```
-3.  **Execução do Dashboard:**
+4.  **Execução do Dashboard:**
     ```bash
     streamlit run functions/front/app.py
     ```
@@ -93,6 +107,7 @@ Isso garante que uma anomalia estatística de R$ 10,00 não tenha a mesma atenç
 * ✅ **Modelagem Ensemble:** Implementação e combinação de Isolation Forest + LOF.
 * ✅ **Dashboard v1:** Interface em Streamlit com mapas, filtros e exportação (Excel/CSV).
 * ✅ **Arquitetura de Produção:** Separação do ETL (`run_etl.py`) do Frontend.
+* ✅ **Atualização Automática de Dados:** Download/extração automatizados dos meses faltantes.
 
 ### 🔮 Melhorias Futuras
 * **Autoencoder (_Deep Learning_):** Implementar redes neurais para reconstrução de padrões complexos não lineares.

@@ -100,7 +100,8 @@ TRANS = {
         "csv_cap": "Ideal para auditoria completa e importação em outros sistemas.",
         "csv_btn": "Baixar Tudo",
         "csv_help": "Baixa todos os dados filtrados atualmente, sem limite de linhas.",
-        "rows_label": "linhas"
+        "rows_label": "linhas",
+        "col_priority": "Prioridade (%)"
     },
     "en": {
         "title": "🦉 Project Jacurutu",
@@ -134,7 +135,8 @@ TRANS = {
         "csv_cap": "Best for full audits and importing into other systems.",
         "csv_btn": "Download All",
         "csv_help": "Downloads all currently filtered data, with no row limit.",
-        "rows_label": "rows"
+        "rows_label": "rows",
+        "col_priority": "Priority (%)"
     }
 }
 
@@ -160,7 +162,15 @@ def load_data():
     if not os.path.exists(path):
         path = "dashboard_data.parquet"
     if os.path.exists(path):
-        return pd.read_parquet(path)
+        df = pd.read_parquet(path)
+        if "PRIORITY_SCORE" in df.columns:
+            log_s = np.log1p(df["PRIORITY_SCORE"].clip(lower=0))
+            min_l, max_l = log_s.min(), log_s.max()
+            if max_l > min_l:
+                df["PRIORITY_PCT"] = ((log_s - min_l) / (max_l - min_l)) * 99 + 1
+            else:
+                df["PRIORITY_PCT"] = 50.0
+        return df
     return pd.DataFrame()
 
 df = load_data()
@@ -204,14 +214,22 @@ with st.sidebar:
     sigilo_choice = st.radio(T["filter_sigilo"], [T["sigilo_sim"], T["sigilo_nao"]], index=1)
 
     # 3.6. Data
-    min_d, max_d = df["DATA TRANSAÇÃO"].min(), df["DATA TRANSAÇÃO"].max()
-    if pd.isna(max_d): max_d = datetime.now()
-    if pd.isna(min_d): min_d = max_d - timedelta(days=90)
+    valid_dates = df["DATA TRANSAÇÃO"].dropna()
+    if not valid_dates.empty:
+        min_d = valid_dates.min().date()
+        max_d = valid_dates.max().date()
+    else:
+        max_d = datetime.now().date()
+        min_d = max_d - timedelta(days=90)
 
-    start_def = max_dt = datetime.now()
     try:
-        date_sel = st.date_input(T["filter_date"], [min_d, max_d])
-    except:
+        date_sel = st.date_input(
+            T["filter_date"],
+            value=[min_d, max_d],
+            min_value=min_d,
+            max_value=max_d
+        )
+    except Exception:
         date_sel = [min_d, max_d]
 
 # APLICAÇÃO DOS FILTROS
@@ -574,11 +592,12 @@ elif selected == T["menu_items"][1]:
     st.subheader(T["scatter"])
     df_scat = df_f.sample(min(2000, len(df_f)))
     fig_sc = px.scatter(
-        df_scat, x="VALOR TRANSAÇÃO", y="PRIORITY_SCORE",
+        df_scat, x="VALOR TRANSAÇÃO", y="PRIORITY_PCT",
         color="NOME ÓRGÃO SUPERIOR", size="VALOR TRANSAÇÃO",
-        hover_data=["NOME FAVORECIDO", "ESTADO_ESTIMADO"],
+        hover_data=["NOME FAVORECIDO", "ESTADO_ESTIMADO", "PRIORITY_SCORE"],
         color_continuous_scale="Tealgrn",
-        template="plotly_dark"
+        template="plotly_dark",
+        labels={"PRIORITY_PCT": T["col_priority"], "VALOR TRANSAÇÃO": "Valor da Transação" if lang=="pt" else "Transaction Value"}
     )
     fig_sc.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
     st.plotly_chart(fig_sc, use_container_width=True)
@@ -586,15 +605,16 @@ elif selected == T["menu_items"][1]:
     # --- TABELA TOP 100 ---
     st.divider()
     st.subheader(T["table"])
-    cols_show = ["DATA TRANSAÇÃO", "NOME ÓRGÃO", "NOME FAVORECIDO", "VALOR TRANSAÇÃO", "TRANSAÇÃO", "PRIORITY_SCORE", "ESTADO_ESTIMADO"]
+    cols_show = ["DATA TRANSAÇÃO", "NOME ÓRGÃO", "NOME FAVORECIDO", "VALOR TRANSAÇÃO", "TRANSAÇÃO", "PRIORITY_PCT", "ESTADO_ESTIMADO"]
     cols_exist = [c for c in cols_show if c in df_f.columns]
 
-    df_top = df_f.sort_values("PRIORITY_SCORE", ascending=False).head(100)[cols_exist]
+    df_top = df_f.sort_values("PRIORITY_SCORE", ascending=False).head(100)[cols_exist].copy()
+    df_top = df_top.rename(columns={"PRIORITY_PCT": T["col_priority"]})
 
     st.dataframe(
         df_top.style.format({
             "VALOR TRANSAÇÃO": "R$ {:,.2f}",
-            "PRIORITY_SCORE": "{:.4f}"
+            T["col_priority"]: "{:.1f}%"
         }),
         use_container_width=True
     )
@@ -619,6 +639,7 @@ elif selected == T["menu_items"][1]:
     "ESTADO_ESTIMADO",
     "SIGILOSO",
     "PRIORITY_SCORE",
+    "PRIORITY_PCT",
     "TECHNICAL_LABEL"
     ]
     cols_final = [c for c in cols_export if c in df_f.columns]

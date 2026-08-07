@@ -1,5 +1,6 @@
 raw_data/
 *.parquet
+!functions/front/dashboard_data.parquet
 *.csv
 *.xlsx
 .python-version

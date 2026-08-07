@@ -65,11 +65,26 @@ This ensures a $10.00 statistical anomaly doesn't outrank a $100,000.00 financia
     ```bash
     pip install -r requirements.txt
     ```
-2.  **Run ETL (Generate Data):**
+2.  **Update Dataset (Automatic Download):**
+    This step automatically downloads the missing months from the Transparency Portal,
+    extracts the CSVs into `raw_data/`, and re-runs the ETL to generate the `.parquet`.
+    ```bash
+    python download_data.py
+    ```
+    *Optional:*
+    ```bash
+    python download_data.py --dry-run        # shows plan without downloading
+    python download_data.py --start 202501   # download from jan/2025
+    python download_data.py --end 202606     # download up to jun/2026
+    python download_data.py --no-etl         # only download/extract, no processing
+    ```
+3.  **Run ETL (Generate Data):**
+    Processes the raw CSVs, trains the models, and saves the `.parquet` file.
+    (Optional — already run automatically by `download_data.py`.)
     ```bash
     python run_etl.py
     ```
-3.  **Launch Dashboard:**
+4.  **Launch Dashboard:**
     ```bash
     streamlit run functions/front/app.py
     ```
@@ -87,6 +102,7 @@ This ensures a $10.00 statistical anomaly doesn't outrank a $100,000.00 financia
 * ✅ **Ensemble Modeling:** Isolation Forest + LOF implementation.
 * ✅ **Dashboard v1:** Streamlit interface with maps and exports.
 * ✅ **Production Architecture:** Decoupling ETL from Frontend.
+* ✅ **Automatic Data Update:** Automated download/extraction of missing months.
 
 ### 🔮 Future Improvements
 * **Autoencoder (Deep Learning):** Neural networks for complex non-linear pattern reconstruction.
